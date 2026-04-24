@@ -1,0 +1,2 @@
+- 위치: `9장`
+- 내용: critical section 보호 도구, lock/interrupt disable 관련 질문
