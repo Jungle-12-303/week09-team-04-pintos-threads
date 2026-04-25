@@ -91,6 +91,9 @@ struct thread {
 	enum thread_status status;          /* Thread state. */
 	char name[16];                      /* Name (for debugging purposes). */
 	int priority;                       /* Priority. */
+	
+	int64_t sleep_tick; //잠든 시각(틱)
+	int64_t wake_tick; //몇 틱 후 일어나야 하는지
 
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
@@ -114,6 +117,7 @@ struct thread {
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
 
+struct list* get_sleepList(void);
 void thread_init (void);
 void thread_start (void);
 

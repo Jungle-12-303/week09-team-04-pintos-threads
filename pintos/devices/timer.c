@@ -107,15 +107,34 @@ timer_elapsed (int64_t then) {
    (현재 구현에서는 busy wait + yield 기반 동작.) */
 void
 timer_sleep (int64_t ticks) {
+
+	//ticks는 양수여야만 한다
+	ASSERT(ticks > 0);
+
+	//스레드에 잠든 시각에 대한 틱(sleep_tick) 설정
+	thread_current()->sleep_tick = timer_ticks(); 
+	//스레드에 잠들 ticks(wake_tick) 설정
+	thread_current()->wake_tick = ticks;
+	
 	int64_t start = timer_ticks ();
 
+	//뭐하는 애야
 	ASSERT (intr_get_level () == INTR_ON);
-	while (timer_elapsed (start) < ticks)
-		thread_yield ();
 
-	// if(timer_elapsed(start) >= ticks){
-	// 	printf("실행");
-	// }
+	printf("%lld 스레드 :: %lld \n", thread_current()->name, timer_elapsed(start));
+
+	//sleeping_list로 현재 스레드 보내기
+	list_push_back(get_sleepList, thread_current());
+
+	//thread_block하기 전에 인터럽트를 꺼야 한다
+	enum intr_level old_level = intr_disable ();
+
+	//이 함수를 호출한 스레드 대기 상태로 전환
+	thread_block(); //이 함수를 호출한 후의 스레드가 달라지나
+	//thread_current()->status =  THREAD_BLOCKED;
+
+
+
 }
 
 /* Suspends execution for approximately MS milliseconds.
@@ -146,12 +165,40 @@ timer_print_stats (void) {
 	printf ("Timer: %"PRId64" ticks\n", timer_ticks ());
 }
 
+
 /* Timer interrupt handler.
    타이머 인터럽트 처리 함수. */
 static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 	thread_tick ();
+
+	//슬립 리스트 검사 => 깨우기
+	if(list_empty(get_sleepList()))
+		return;
+
+	struct list_elem *currElem = list_head(get_sleepList());
+	struct list_elem *endElem = list_tail(get_sleepList());
+
+	while(currElem != endElem){
+		struct thread *currT = list_entry(currElem, struct thread, elem);
+		if(currT->wake_tick >= timer_elapsed(currT->sleep_tick)){
+			//슬리핑 리스트에서 제거
+			list_remove(currElem);
+			//스레드가 ready_List에 추가되고 status가 ready로 바뀜
+			thread_unblock(currT); 
+		}
+
+		else
+			break;
+		
+
+		//다음 리스트 원소로 보내기
+		currElem = list_next(currElem);
+	}
+
+	
+
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
