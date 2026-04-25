@@ -34,6 +34,10 @@
 /* THREAD_READY 상태(실행 가능하지만 실제로는 실행 중이 아닌) 스레드들의 목록입니다. */
 static struct list ready_list;
 
+//대기해야 하는 스레드들의 목록
+static struct list sleep_list;
+
+
 /* Idle thread. */
 /* 아무 작업이 없는 동안 실행되는 유휴 스레드입니다. */
 static struct thread *idle_thread;
@@ -149,6 +153,7 @@ thread_init (void) {
 	/* 전역 스레드 문맥을 초기화합니다. */
 	lock_init (&tid_lock);
 	list_init (&ready_list);
+	list_init (&sleep_list);
 	list_init (&destruction_req);
 
 	/* Set up a thread structure for the running thread. */
@@ -295,6 +300,11 @@ thread_block (void) {
 	ASSERT (!intr_context ());
 	ASSERT (intr_get_level () == INTR_OFF);
 	thread_current ()->status = THREAD_BLOCKED;
+
+	//ready_list => sleep_list로 이동
+	list_remove(&thread_current()->elem);
+	list_push_back (&sleep_list, &thread_current()->elem);
+
 	schedule ();
 }
 
@@ -321,6 +331,9 @@ thread_unblock (struct thread *t) {
 
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
+
+	//sleep_list => ready_list로 이동
+	list_remove (&t->elem);
 	list_push_back (&ready_list, &t->elem);
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
@@ -397,6 +410,8 @@ thread_yield (void) {
 	ASSERT (!intr_context ());
 
 	old_level = intr_disable ();
+
+	//여기서 리스트 다뤄야 하나
 	if (curr != idle_thread)
 		list_push_back (&ready_list, &curr->elem);
 	do_schedule (THREAD_READY);
