@@ -92,9 +92,8 @@ struct thread {
 	char name[16];                      /* Name (for debugging purposes). */
 	int priority;                       /* Priority. */
 	
-	int64_t sleep_tick; //잠든 시각(틱)
-	int64_t wake_tick; //몇 틱 후 일어나야 하는지
-
+	int64_t wake_tick; //기상할 시각
+	
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
 

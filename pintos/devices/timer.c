@@ -32,6 +32,9 @@ static intr_handler_func timer_interrupt;
 static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
+static bool comparator(const struct list_elem *a,
+           const struct list_elem *b,
+		   void *aux);
 
 /* Sets up the 8254 Programmable Interval Timer (PIT) to
    interrupt PIT_FREQ times per second, and registers the
@@ -109,31 +112,39 @@ void
 timer_sleep (int64_t ticks) {
 
 	//ticks는 양수여야만 한다
-	ASSERT(ticks > 0);
+	// ASSERT(ticks > 0);
+	if(ticks <= 0) return;
 
-	//스레드에 잠든 시각에 대한 틱(sleep_tick) 설정
-	thread_current()->sleep_tick = timer_ticks(); 
-	//스레드에 잠들 ticks(wake_tick) 설정
-	thread_current()->wake_tick = ticks;
+	// //스레드에 잠든 시각에 대한 틱(sleep_tick) 설정
+	// thread_current()->sleep_tick = timer_ticks(); 
+	
+	//깨어날 ticks(wake_tick) 설정
 	
 	int64_t start = timer_ticks ();
-
+	
 	//뭐하는 애야
 	ASSERT (intr_get_level () == INTR_ON);
+	
+	struct thread *t = thread_current();
+	t->wake_tick = timer_ticks() + ticks;
 
-	printf("%lld 스레드 :: %lld \n", thread_current()->name, timer_elapsed(start));
-
-	//sleeping_list로 현재 스레드 보내기
-	list_push_back(get_sleepList, thread_current());
 
 	//thread_block하기 전에 인터럽트를 꺼야 한다
 	enum intr_level old_level = intr_disable ();
 
+	printf("%s 스레드 %lld틱으로 sleeping_list 삽입\n", thread_name(), ticks);
+	
+	//sleeping_list로 현재 스레드 보내기
+	list_insert_ordered(get_sleepList(), t, comparator, NULL);
+
+	// printf("%s 스레드 상태: %d,인터럽트 끔 \n", thread_name(), t->status);
+
 	//이 함수를 호출한 스레드 대기 상태로 전환
 	thread_block(); //이 함수를 호출한 후의 스레드가 달라지나
-	//thread_current()->status =  THREAD_BLOCKED;
+	// printf("%s 스레드 %lld틱으로 sleeping_list 삽입\n", thread_name(), ticks);
 
-
+	//thread_block한 후에 인터럽트를 켜야 한다.
+	intr_set_level (old_level);
 
 }
 
@@ -172,32 +183,31 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 	thread_tick ();
+	printf("DEBUG: 현재 %"PRId64"\n", ticks);
 
-	//슬립 리스트 검사 => 깨우기
+	
 	if(list_empty(get_sleepList()))
 		return;
 
-	struct list_elem *currElem = list_head(get_sleepList());
-	struct list_elem *endElem = list_tail(get_sleepList());
+	//슬립 리스트 순회하며 깨울 스레드 깨우기
+	while(list_empty(get_sleepList())){
 
-	while(currElem != endElem){
-		struct thread *currT = list_entry(currElem, struct thread, elem);
-		if(currT->wake_tick >= timer_elapsed(currT->sleep_tick)){
-			//슬리핑 리스트에서 제거
-			list_remove(currElem);
-			//스레드가 ready_List에 추가되고 status가 ready로 바뀜
-			thread_unblock(currT); 
-		}
-
-		else
-			break;
+		//현재 방문한 스레드
+		struct thread *currT = list_entry(list_front(get_sleepList()), struct thread, elem);
 		
+		//깨울 때가 되면
+		if( currT->wake_tick >= ticks){
 
-		//다음 리스트 원소로 보내기
-		currElem = list_next(currElem);
+			//1. 스레드 언블록(레디 리스트에 추가)
+			thread_unblock(currT);
+			
+			//2. 슬리핑 리스트에서 제거
+			list_pop_front(get_sleepList());
+		 }
+		 //슬리핑 리스트는 정렬되어있기 때문에 그 다음부터는 볼 필요 없음
+		 else
+		 	break;
 	}
-
-	
 
 }
 
@@ -272,3 +282,12 @@ real_time_sleep (int64_t num, int32_t denom) {
 		busy_wait (loops_per_tick * num / 1000 * TIMER_FREQ / (denom / 1000));
 	}
 }
+
+static bool 
+comparator(const struct list_elem *a,
+           const struct list_elem *b,
+		   void *aux) {
+	
+	return list_entry(a, struct thread, elem)-> wake_tick < 
+		   list_entry(b, struct thread, elem)-> wake_tick;
+}          

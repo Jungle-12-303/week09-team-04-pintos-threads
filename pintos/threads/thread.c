@@ -30,8 +30,8 @@
 #define THREAD_BASIC 0xd42df210
 
 /* List of processes in THREAD_READY state, that is, processes
-   that are ready to run but not actually running. */
-/* THREAD_READY 상태(실행 가능하지만 실제로는 실행 중이 아닌) 스레드들의 목록입니다. */
+   that are ready to run but not actually running. 
+   THREAD_READY 상태(실행 가능하지만 실제로는 실행 중이 아닌) 스레드들의 목록입니다. */
 static struct list ready_list;
 
 //대기해야 하는 스레드들의 목록
@@ -215,8 +215,8 @@ thread_tick (void) {
 		intr_yield_on_return ();
 }
 
-/* Prints thread statistics. */
-/* 스레드 통계를 출력합니다. */
+/* Prints thread statistics. 
+   스레드 통계를 출력합니다. */
 void
 thread_print_stats (void) {
 	printf ("Thread: %lld idle ticks, %lld kernel ticks, %lld user ticks\n",
@@ -317,8 +317,8 @@ thread_block (void) {
    This function does not preempt the running thread.  This can
    be important: if the caller had disabled interrupts itself,
    it may expect that it can atomically unblock a thread and
-   update other data. */
-/* BLOCKED 상태의 스레드 T를 READY 상태로 전환합니다.
+   update other data. 
+   BLOCKED 상태의 스레드 T를 READY 상태로 전환합니다.
    T가 블록 상태가 아니면 오류입니다. (실행 중인 스레드를 READY로 바꾸려면
    thread_yield()를 사용하세요.)
 
@@ -360,8 +360,8 @@ thread_current (void) {
 	   If either of these assertions fire, then your thread may
 	   have overflowed its stack.  Each thread has less than 4 kB
 	   of stack, so a few big automatic arrays or moderate
-	   recursion can cause stack overflow. */
-	/* t가 진짜 스레드인지 확인합니다.
+	   recursion can cause stack overflow. 
+	   t가 진짜 스레드인지 확인합니다.
 	   여기서 assert가 실패하면 스택 오버플로우가 의심됩니다.
 	   스레드 스택이 4KB 미만이므로 큰 자동 배열이나 깊은 재귀는 오버플로우를 유발할 수 있습니다. */
 	ASSERT (is_thread (t));
@@ -556,8 +556,8 @@ init_thread (struct thread *t, const char *name, int priority) {
    return a thread from the run queue, unless the run queue is
    empty.  (If the running thread can continue running, then it
    will be in the run queue.)  If the run queue is empty, return
-   idle_thread. */
-/* 다음으로 스케줄링할 스레드를 선택해 반환합니다.
+   idle_thread. 
+   다음으로 스케줄링할 스레드를 선택해 반환합니다.
    run queue가 비어 있지 않다면 run queue에서 하나를 꺼내 반환하고,
    비어 있으면 idle_thread를 반환합니다. */
 static struct thread *
@@ -606,8 +606,8 @@ do_iret (struct intr_frame *tf) {
 
    It's not safe to call printf() until the thread switch is
    complete.  In practice that means that printf()s should be
-   added at the end of the function. */
-/* 새 스레드의 페이지 테이블을 활성화해 스위칭하고,
+   added at the end of the function. 
+   새 스레드의 페이지 테이블을 활성화해 스위칭하고,
    이전 스레드가 종료 상태면 소멸시킵니다.
 
    이 함수 호출 시점에는 PREV에서 새 스레드로 이미 전환됐으며,
@@ -625,8 +625,8 @@ thread_launch (struct thread *th) {
 	 * We first restore the whole execution context into the intr_frame
 	 * and then switching to the next thread by calling do_iret.
 	 * Note that, we SHOULD NOT use any stack from here
-	 * until switching is done. */
-	/* 실제 컨텍스트 스위칭 핵심 로직입니다.
+	 * until switching is done. 
+	 * 실제 컨텍스트 스위칭 핵심 로직입니다.
 	 * 먼저 실행 컨텍스트를 intr_frame에 복구한 뒤 do_iret를 호출해 다음 스레드로 이동합니다.
 	 * 전환이 완료될 때까지 이 스택은 사용해서는 안 됩니다. */
 	__asm __volatile (
@@ -654,7 +654,7 @@ thread_launch (struct thread *th) {
 			"movq %%rcx, 96(%%rax)\n"
 			"movq %%rbx, 104(%%rax)\n"
 			"pop %%rbx\n"              // Saved rcx
-			"movq %%rbx, 112(%%rax)\n"
+			"movq %%rbx, 96(%%rax)\n"
 			"pop %%rbx\n"              // Saved rbx
 			"movq %%rbx, 104(%%rax)\n"
 			"pop %%rbx\n"              // Saved rax
@@ -684,8 +684,8 @@ thread_launch (struct thread *th) {
 /* Schedules a new process. At entry, interrupts must be off.
  * This function modify current thread's status to status and then
  * finds another thread to run and switches to it.
- * It's not safe to call printf() in the schedule(). */
-/* 새 프로세스를 스케줄링합니다. 진입 시 인터럽트는 꺼져 있어야 합니다.
+ * It's not safe to call printf() in the schedule(). 
+ * 새 프로세스를 스케줄링합니다. 진입 시 인터럽트는 꺼져 있어야 합니다.
  * 현재 스레드 상태를 status로 바꾸고, 다른 실행 스레드를 찾아 전환합니다.
  * schedule() 내에서는 printf()를 호출하면 안 됩니다. */
 static void
