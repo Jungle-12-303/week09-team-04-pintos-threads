@@ -86,6 +86,10 @@ static void init_thread (struct thread *, const char *name, int priority);
 static void do_schedule(int status);
 static void schedule (void);
 static tid_t allocate_tid (void);
+//스레드 elem을 priority에 대해서 오름차순으로 정렬 도움
+static bool priority_greater_comparator(const struct list_elem *a,
+		   const struct list_elem *b,
+		   void *aux);
 
 /* Returns true if T appears to point to a valid thread. 
  T가 유효한 스레드를 가리키는지 검사합니다. */
@@ -239,7 +243,7 @@ thread_print_stats (void) {
    PRIORITY, but no actual priority scheduling is implemented.
    Priority scheduling is the goal of Problem 1-3. 
     새 커널 스레드를 생성합니다.
-   NAME은 이름, PRIORITY는 초기 우선순위, FUNCTION은 실행 함수, AUX는 인자입니다.
+   NAME은 이름, PRIORITY는 초기 우선순위, FUNCTION은 새 스레드가 시작할 때 실행할 함수의 포인터, AUX는 인자입니다.
    생성한 스레드는 ready 큐에 들어가고, 성공 시 TID를 반환하며 실패 시 TID_ERROR를 반환합니다.
 
    thread_start()가 이미 호출된 경우, 새 스레드는 thread_create()가 반환되기 전에
@@ -334,7 +338,8 @@ thread_unblock (struct thread *t) {
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
 
-	list_push_back (&ready_list, &t->elem);
+	//list_push_back (&ready_list, &t->elem);
+	list_insert_ordered(&ready_list, &t->elem, priority_greater_comparator, NULL);
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
 }
@@ -418,6 +423,7 @@ thread_yield (void) {
 	//현 스레드가 유휴 스레드가 아니면 ready에 넣기
 	//유휴 스레드는 레디리스트에 안넣는다
 	if (curr != idle_thread)
+		//list_insert_ordered(&ready_list, &curr->elem, priority_greater_comparator, NULL);
 		list_push_back (&ready_list, &curr->elem);
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
@@ -760,3 +766,13 @@ allocate_tid (void) {
 
 	return tid;
 }
+
+//스레드 elem을 priority에 대해서 오름차순으로 정렬 도움
+static bool 
+priority_greater_comparator(const struct list_elem *a,
+           const struct list_elem *b,
+		   void *aux) {
+	
+	return list_entry(a, struct thread, elem)-> priority >
+		   list_entry(b, struct thread, elem)-> priority;
+}          

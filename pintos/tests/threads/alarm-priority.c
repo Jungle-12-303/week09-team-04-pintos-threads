@@ -21,19 +21,28 @@ test_alarm_priority (void)
   /* This test does not work with the MLFQS. */
   ASSERT (!thread_mlfqs);
 
+  //500틱 후 기상(모든 스레드 공통=>전역 변수)
   wake_time = timer_ticks () + 5 * TIMER_FREQ;
   sema_init (&wait_sema, 0);
   
   for (i = 0; i < 10; i++) 
     {
+      /*priority 수식의 의도:
+      i=0..9에 대해 5,6,7,8,9,0,1,2,3,4 순으로 순환값을 생성
+      priority: 25, 24, 23,22,21,30,29...순으로 부여
+       10개의 서로 다른 우선순위를 “섞어서” 만들기 위해 쓴 것
+      */
       int priority = PRI_DEFAULT - (i + 5) % 10 - 1;
       char name[16];
       snprintf (name, sizeof name, "priority %d", priority);
+
+      //스레드는 create되면서(alarm_priority_thread) wait_sema +1 => wait sema 최종 10
       thread_create (name, priority, alarm_priority_thread, NULL);
     }
 
   thread_set_priority (PRI_MIN);
 
+  //10번 세마 다운
   for (i = 0; i < 10; i++)
     sema_down (&wait_sema);
 }
@@ -54,5 +63,6 @@ alarm_priority_thread (void *aux UNUSED)
   /* Print a message on wake-up. */
   msg ("Thread %s woke up.", thread_name ());
 
+  //스레드 1개 생성하며 세마 +1
   sema_up (&wait_sema);
 }
