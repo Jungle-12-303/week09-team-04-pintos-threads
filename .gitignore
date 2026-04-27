@@ -28,3 +28,6 @@ core
 
 # macOS
 .DS_Store
+
+# Ignore VSCode Pintos test history (local only)
+/pintos/.vscode/pintos-test-history.json
