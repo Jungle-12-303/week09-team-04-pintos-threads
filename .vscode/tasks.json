@@ -1,0 +1,234 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "pintos: build threads",
+            "type": "process",
+            "command": "make",
+            "options": {
+                "cwd": "${workspaceFolder}/pintos/threads"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build",
+            "detail": "Build the Pintos threads kernel and tests."
+        },
+        {
+            "label": "pintos: build userprog",
+            "type": "process",
+            "command": "make",
+            "options": {
+                "cwd": "${workspaceFolder}/pintos/userprog"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build",
+            "detail": "Build the Pintos userprog kernel and tests."
+        },
+        {
+            "label": "pintos: build vm",
+            "type": "process",
+            "command": "make",
+            "options": {
+                "cwd": "${workspaceFolder}/pintos/vm"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build",
+            "detail": "Build the Pintos vm kernel and tests."
+        },
+        {
+            "label": "pintos: run gdb server threads",
+            "type": "process",
+            "command": "/bin/bash",
+            "args": [
+                "${workspaceFolder}/scripts/pintos-debug-session.sh",
+                "start",
+                "threads"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PINTOS_DEBUG_ARGS": "${input:pintosThreadsArgs}",
+                    "PINTOS_GDB_PORT": "1234"
+                }
+            },
+            "isBackground": true,
+            "problemMatcher": [
+                {
+                    "owner": "custom",
+                    "pattern": [
+                        {
+                            "regexp": "^(.*)$",
+                            "message": 1
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "endsPattern": "^PINTOS_DEBUG_READY threads 1234$"
+                    }
+                }
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "focus": false,
+                "clear": true
+            },
+            "detail": "Run Pintos threads in QEMU with the GDB stub enabled."
+        },
+        {
+            "label": "pintos: run gdb server userprog",
+            "type": "process",
+            "command": "/bin/bash",
+            "args": [
+                "${workspaceFolder}/scripts/pintos-debug-session.sh",
+                "start",
+                "userprog"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PINTOS_DEBUG_ARGS": "${input:pintosUserprogArgs}",
+                    "PINTOS_GDB_PORT": "1234"
+                }
+            },
+            "isBackground": true,
+            "problemMatcher": [
+                {
+                    "owner": "custom",
+                    "pattern": [
+                        {
+                            "regexp": "^(.*)$",
+                            "message": 1
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "endsPattern": "^PINTOS_DEBUG_READY userprog 1234$"
+                    }
+                }
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "focus": false,
+                "clear": true
+            },
+            "detail": "Run Pintos userprog in QEMU with the GDB stub enabled."
+        },
+        {
+            "label": "pintos: run gdb server vm",
+            "type": "process",
+            "command": "/bin/bash",
+            "args": [
+                "${workspaceFolder}/scripts/pintos-debug-session.sh",
+                "start",
+                "vm"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PINTOS_DEBUG_ARGS": "${input:pintosVmArgs}",
+                    "PINTOS_GDB_PORT": "1234"
+                }
+            },
+            "isBackground": true,
+            "problemMatcher": [
+                {
+                    "owner": "custom",
+                    "pattern": [
+                        {
+                            "regexp": "^(.*)$",
+                            "message": 1
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "endsPattern": "^PINTOS_DEBUG_READY vm 1234$"
+                    }
+                }
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "focus": false,
+                "clear": true
+            },
+            "detail": "Run Pintos vm in QEMU with the GDB stub enabled."
+        },
+        {
+            "label": "pintos: debug threads",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "pintos: build threads",
+                "pintos: run gdb server threads"
+            ],
+            "problemMatcher": [],
+            "detail": "Build threads and wait for the QEMU GDB server."
+        },
+        {
+            "label": "pintos: debug userprog",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "pintos: build userprog",
+                "pintos: run gdb server userprog"
+            ],
+            "problemMatcher": [],
+            "detail": "Build userprog and wait for the QEMU GDB server."
+        },
+        {
+            "label": "pintos: debug vm",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "pintos: build vm",
+                "pintos: run gdb server vm"
+            ],
+            "problemMatcher": [],
+            "detail": "Build vm and wait for the QEMU GDB server."
+        },
+        {
+            "label": "pintos: stop debug session",
+            "type": "process",
+            "command": "/bin/bash",
+            "args": [
+                "${workspaceFolder}/scripts/pintos-debug-session.sh",
+                "stop",
+                "all"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "never",
+                "panel": "shared",
+                "focus": false
+            },
+            "detail": "Stop any Pintos debug session started by VS Code."
+        }
+    ],
+    "inputs": [
+        {
+            "id": "pintosThreadsArgs",
+            "type": "promptString",
+            "description": "Extra Pintos arguments for threads (shell-style quoting supported).",
+            "default": "-v -- -q run alarm-single"
+        },
+        {
+            "id": "pintosUserprogArgs",
+            "type": "promptString",
+            "description": "Extra Pintos arguments for userprog (shell-style quoting supported).",
+            "default": "-p tests/userprog/halt -a halt -- -q run halt"
+        },
+        {
+            "id": "pintosVmArgs",
+            "type": "promptString",
+            "description": "Extra Pintos arguments for vm (shell-style quoting supported).",
+            "default": "-p tests/vm/pt-grow-stack -a pt-grow-stack -- -q run pt-grow-stack"
+        }
+    ]
+}

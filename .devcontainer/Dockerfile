@@ -24,11 +24,14 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 
 RUN useradd -m -s /bin/bash jungle && usermod -aG sudo jungle
 RUN echo "jungle ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/jungle
+RUN printf '%s\n' \
+    'if [ -n "${PINTOS_WORKSPACE:-}" ] && [ -f "${PINTOS_WORKSPACE}/pintos/activate" ]; then' \
+    '  . "${PINTOS_WORKSPACE}/pintos/activate"' \
+    'fi' > /etc/profile.d/pintos-workspace.sh && \
+    chmod 0644 /etc/profile.d/pintos-workspace.sh
 
 USER jungle
 WORKDIR /home/jungle
-
-RUN echo "source /workspaces/pintos_22.04_lab_docker/pintos/activate" >> /home/jungle/.bashrc
 
 # Clone the repository
 # RUN git clone https://github.com/casys-kaist/pintos-kaist /home/jungle/pintos

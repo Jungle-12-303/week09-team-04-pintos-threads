@@ -1,0 +1,95 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Pintos: threads",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/pintos/threads/build/kernel.o",
+            "cwd": "${workspaceFolder}/pintos/threads/build",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "miDebuggerServerAddress": "127.0.0.1:1234",
+            "externalConsole": false,
+            "stopAtEntry": false,
+            "launchCompleteCommand": "exec-continue",
+            "preLaunchTask": "pintos: debug threads",
+            "postDebugTask": "pintos: stop debug session",
+            "setupCommands": [
+                {
+                    "description": "Enable GDB pretty printing",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Load the Pintos kernel symbols",
+                    "text": "symbol-file ${workspaceFolder}/pintos/threads/build/kernel.o"
+                },
+                {
+                    "description": "Use the build directory inside GDB",
+                    "text": "cd ${workspaceFolder}/pintos/threads/build"
+                }
+            ]
+        },
+        {
+            "name": "Pintos: userprog",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/pintos/userprog/build/kernel.o",
+            "cwd": "${workspaceFolder}/pintos/userprog/build",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "miDebuggerServerAddress": "127.0.0.1:1234",
+            "externalConsole": false,
+            "stopAtEntry": false,
+            "launchCompleteCommand": "exec-continue",
+            "preLaunchTask": "pintos: debug userprog",
+            "postDebugTask": "pintos: stop debug session",
+            "setupCommands": [
+                {
+                    "description": "Enable GDB pretty printing",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Load the Pintos kernel symbols",
+                    "text": "symbol-file ${workspaceFolder}/pintos/userprog/build/kernel.o"
+                },
+                {
+                    "description": "Use the build directory inside GDB",
+                    "text": "cd ${workspaceFolder}/pintos/userprog/build"
+                }
+            ]
+        },
+        {
+            "name": "Pintos: vm",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/pintos/vm/build/kernel.o",
+            "cwd": "${workspaceFolder}/pintos/vm/build",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "miDebuggerServerAddress": "127.0.0.1:1234",
+            "externalConsole": false,
+            "stopAtEntry": false,
+            "launchCompleteCommand": "exec-continue",
+            "preLaunchTask": "pintos: debug vm",
+            "postDebugTask": "pintos: stop debug session",
+            "setupCommands": [
+                {
+                    "description": "Enable GDB pretty printing",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Load the Pintos kernel symbols",
+                    "text": "symbol-file ${workspaceFolder}/pintos/vm/build/kernel.o"
+                },
+                {
+                    "description": "Use the build directory inside GDB",
+                    "text": "cd ${workspaceFolder}/pintos/vm/build"
+                }
+            ]
+        }
+    ]
+}

@@ -12,7 +12,8 @@
 * pintos 도커 환경은 kaist-pintos에서 추천하는 qemu 에뮬레이터를 설치하고 사용합니다. 
 * pintos 도커 환경은 9주차부터 13주차까지 같은 환경을 사용합니다. 이 기간동안 별도의 개발 환경을 제공하지 않습니다.
 * 기존 도커 환경과 달리 `vscode`와 통합된 디버깅 환경(F5로 시작하는)을 제공하지 않습니다. 디버깅이 필요한 경우 `gdb`를 사용하세요. 
-* vscode에서 터미널을 오픈하면 자동으로 `source /workspaces/pintos_22.04_lab_docker/pintos/activate`를 실행합니다.
+* Dev Container에서는 현재 워크스페이스의 `pintos/utils`가 자동으로 `PATH`에 추가됩니다.
+* VS Code F5 디버그 사용법은 `docs/vscode-pintos-f5-debug.md`를 참고하세요.
 
 ---
 
@@ -62,7 +63,7 @@ Docker는 다음 구성요소로 이루어져 있습니다:
 터미널(CMD, PowerShell, zsh 등)에서 아래 명령어로 프로젝트 폴더만 내려받습니다:
 
 ```bash
-git clone --depth=1 https://github.com/krafton-jungle/pintos_22.04_lab_docker.git 
+git clone --depth=1 <REPOSITORY_URL> week09-team-04-pintos-threads
 ```
 
 - `--depth=1` 옵션은 git commit 히스토리를 생략하고 **최신 파일만 가져옵니다.**
@@ -70,7 +71,7 @@ git clone --depth=1 https://github.com/krafton-jungle/pintos_22.04_lab_docker.gi
 ### 📂 다운로드 후 폴더 구조 설명
 
 ```
-pintos_22.04_lab_docker/
+week09-team-04-pintos-threads/
 ├── .devcontainer/
 │   ├── devcontainer.json      # VSCode에서 컨테이너 환경 설정
 │   └── Dockerfile             # pintos 개발 환경 도커 이미지 정의
@@ -87,7 +88,7 @@ pintos_22.04_lab_docker/
 ## 5. VSCode에서 해당 프로젝트 폴더 열기
 
 1. VSCode를 실행
-2. `파일 → 폴더 열기`로 방금 클론한 `pintos_22.04_lab_docker` 폴더를 선택
+2. `파일 → 폴더 열기`로 방금 클론한 `week09-team-04-pintos-threads` 폴더를 선택
 
 ---
 

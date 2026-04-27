@@ -28,6 +28,18 @@ static intr_handler_func timer_interrupt;
 static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
+static struct list sleep_list;
+static bool wakeup_comparison (const struct list_elem *a, const struct list_elem *b, void *aux);
+
+static bool
+wakeup_comparison (const struct list_elem *a, const struct list_elem *b, void *aux){
+	if(list_entry(a, struct thread, elem)->wakeup_tick < list_entry(b, struct thread, elem)->wakeup_tick){
+		return true;
+	}
+	else{
+		return false;
+	}
+}
 
 /* Sets up the 8254 Programmable Interval Timer (PIT) to
    interrupt PIT_FREQ times per second, and registers the
@@ -37,6 +49,7 @@ timer_init (void) {
 	/* 8254 input frequency divided by TIMER_FREQ, rounded to
 	   nearest. */
 	uint16_t count = (1193180 + TIMER_FREQ / 2) / TIMER_FREQ;
+	list_init(&sleep_list);
 
 	outb (0x43, 0x34);    /* CW: counter 0, LSB then MSB, mode 2, binary. */
 	outb (0x40, count & 0xff);
@@ -90,11 +103,24 @@ timer_elapsed (int64_t then) {
 /* Suspends execution for approximately TICKS timer ticks. */
 void
 timer_sleep (int64_t ticks) {
-	int64_t start = timer_ticks ();
-
+	/*	sleep할 tick이 0 이하인지 확인. 
+	ex) timer_sleep(10)은 10 tick 뒤에 꺠우기, timer_sleep(0)은 지금 깨우기, timer_sleep(-5)는 이미 지난 요청
+		 현재 스레드를 가져온다. -> wakeuptick을 계산하고 
+		-> sleep list에 정렬된 위치에 넣는다. ->현재 스레드(방금 넣은 스레드)를 block */
+	if (ticks <=0){
+		return;
+	}
 	ASSERT (intr_get_level () == INTR_ON);
-	while (timer_elapsed (start) < ticks)
-		thread_yield ();
+	enum intr_level old_level = intr_disable();
+	int64_t start = timer_ticks ();
+	
+	struct thread *cur = thread_current();
+	cur->wakeup_tick = start + ticks;
+	list_insert_ordered(&sleep_list, &cur->elem,
+			wakeup_comparison, NULL);
+
+	thread_block();
+	intr_set_level(old_level);
 }
 
 /* Suspends execution for approximately MS milliseconds. */
@@ -125,7 +151,22 @@ timer_print_stats (void) {
 static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
+
+	while(!list_empty(&sleep_list)){
+		struct list_elem *e = list_front(&sleep_list);
+		struct thread *t = list_entry(e, struct thread, elem);
+		if(t->wakeup_tick <= ticks){
+			list_pop_front(&sleep_list);
+			thread_unblock(t);
+		}
+		else{
+			break;
+		}
+	}
+
 	thread_tick ();
+	/* sleeplist에서 깨어날 시간이 된 스레드들을 꺼내기 
+	-> unblock해서 ready 상태로 되돌리기*/
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

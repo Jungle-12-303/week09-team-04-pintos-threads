@@ -1,0 +1,89 @@
+{
+  "threads": {
+    "tests/threads/alarm-zero": {
+      "count": 1,
+      "last_used": 1777300001.879,
+      "last_action": "run"
+    },
+    "tests/threads/alarm-priority": {
+      "count": 8,
+      "last_used": 1777309465.771,
+      "last_action": "run"
+    },
+    "tests/threads/alarm-multiple": {
+      "count": 1,
+      "last_used": 1777300029.316,
+      "last_action": "debug"
+    },
+    "tests/threads/alarm-simultaneous": {
+      "count": 1,
+      "last_used": 1777300082.835,
+      "last_action": "debug"
+    },
+    "tests/threads/alarm-single": {
+      "count": 1,
+      "last_used": 1777300202.718,
+      "last_action": "debug"
+    },
+    "tests/threads/priority-change": {
+      "count": 1,
+      "last_used": 1777302248.335,
+      "last_action": "run"
+    },
+    "tests/threads/priority-donate-one": {
+      "count": 1,
+      "last_used": 1777302248.335,
+      "last_action": "run"
+    },
+    "tests/threads/priority-donate-multiple": {
+      "count": 1,
+      "last_used": 1777302248.335,
+      "last_action": "run"
+    },
+    "tests/threads/priority-donate-multiple2": {
+      "count": 1,
+      "last_used": 1777302248.335,
+      "last_action": "run"
+    },
+    "tests/threads/priority-donate-nest": {
+      "count": 1,
+      "last_used": 1777302248.335,
+      "last_action": "run"
+    },
+    "tests/threads/priority-donate-sema": {
+      "count": 1,
+      "last_used": 1777302248.335,
+      "last_action": "run"
+    },
+    "tests/threads/priority-donate-lower": {
+      "count": 1,
+      "last_used": 1777302248.335,
+      "last_action": "run"
+    },
+    "tests/threads/priority-fifo": {
+      "count": 1,
+      "last_used": 1777302248.335,
+      "last_action": "run"
+    },
+    "tests/threads/priority-preempt": {
+      "count": 1,
+      "last_used": 1777302248.335,
+      "last_action": "run"
+    },
+    "tests/threads/priority-sema": {
+      "count": 1,
+      "last_used": 1777302248.335,
+      "last_action": "run"
+    },
+    "tests/threads/priority-condvar": {
+      "count": 1,
+      "last_used": 1777302248.335,
+      "last_action": "run"
+    },
+    "tests/threads/priority-donate-chain": {
+      "count": 1,
+      "last_used": 1777302248.335,
+      "last_action": "run"
+    }
+  }
+}
