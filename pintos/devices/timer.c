@@ -122,7 +122,7 @@ timer_sleep (int64_t ticks) {
 	
 	int64_t start = timer_ticks ();
 	
-	//뭐하는 애야
+	//가정: 인터럽트 on이다
 	ASSERT (intr_get_level () == INTR_ON);
 	
 	struct thread *t = thread_current();
@@ -132,10 +132,10 @@ timer_sleep (int64_t ticks) {
 	//thread_block하기 전에 인터럽트를 꺼야 한다
 	enum intr_level old_level = intr_disable ();
 
-	printf("%s 스레드 %lld틱으로 sleeping_list 삽입\n", thread_name(), ticks);
+	//printf("%s 스레드 %lld틱으로 sleeping_list 삽입\n", thread_name(), ticks);
 	
 	//sleeping_list로 현재 스레드 보내기
-	list_insert_ordered(get_sleepList(), t, comparator, NULL);
+	list_insert_ordered(get_sleepList(), &(t->elem), comparator, NULL);
 
 	// printf("%s 스레드 상태: %d,인터럽트 끔 \n", thread_name(), t->status);
 
@@ -183,26 +183,26 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 	thread_tick ();
-	printf("DEBUG: 현재 %"PRId64"\n", ticks);
+	//printf("DEBUG: 현재 %"PRId64"\n", ticks);
 
 	
 	if(list_empty(get_sleepList()))
 		return;
 
 	//슬립 리스트 순회하며 깨울 스레드 깨우기
-	while(list_empty(get_sleepList())){
+	while(!list_empty(get_sleepList())){
 
 		//현재 방문한 스레드
 		struct thread *currT = list_entry(list_front(get_sleepList()), struct thread, elem);
 		
 		//깨울 때가 되면
-		if( currT->wake_tick >= ticks){
-
-			//1. 스레드 언블록(레디 리스트에 추가)
-			thread_unblock(currT);
+		if( currT->wake_tick <= ticks){
 			
-			//2. 슬리핑 리스트에서 제거
+			//1. 슬리핑 리스트에서 제거
 			list_pop_front(get_sleepList());
+
+			//2. 스레드 언블록(레디 리스트에 추가)
+			thread_unblock(currT);
 		 }
 		 //슬리핑 리스트는 정렬되어있기 때문에 그 다음부터는 볼 필요 없음
 		 else
