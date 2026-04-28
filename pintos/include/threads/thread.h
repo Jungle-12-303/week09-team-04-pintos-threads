@@ -154,6 +154,7 @@ tid_t thread_create (const char *name, int priority, thread_func *, void *);
 /* Function pointers for list ordering. */
 /* 리스트 정렬에 사용하는 비교 함수들. */
 bool thread_wakeup_tick_less (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+bool thread_priority_greater (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 
 void thread_block (void);
 void thread_unblock (struct thread *);

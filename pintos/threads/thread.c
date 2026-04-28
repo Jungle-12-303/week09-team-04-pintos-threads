@@ -74,6 +74,7 @@ static void init_thread (struct thread *, const char *name, int priority);
 static void do_schedule(int status);
 static void schedule (void);
 static tid_t allocate_tid (void);
+static bool ready_has_higher_priority (void);
 
 /* Returns true if T appears to point to a valid thread. */
 /* T가 유효한 thread 구조체를 가리키는 것처럼 보이면 true. */
@@ -228,6 +229,10 @@ thread_create (const char *name, int priority,
 	/* Add to run queue. */
 	thread_unblock (t);
 
+	if (ready_has_higher_priority ()) {
+		thread_yield ();
+	}
+
 	return tid;
 }
 
@@ -238,6 +243,14 @@ thread_wakeup_tick_less (const struct list_elem *a, const struct list_elem *b, v
 	const struct thread *ta = list_entry (a, struct thread, elem_sleep);
 	const struct thread *tb = list_entry (b, struct thread, elem_sleep);
 	return ta->wakeup_tick < tb->wakeup_tick;
+}
+
+/* Returns true if thread A's priority is greater than thread B's priority. */
+bool
+thread_priority_greater (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+	const struct thread *ta = list_entry (a, struct thread, elem);
+	const struct thread *tb = list_entry (b, struct thread, elem);
+	return ta->priority > tb->priority;
 }
 
 /* Puts the current thread to sleep.  It will not be scheduled
@@ -272,7 +285,7 @@ thread_unblock (struct thread *t) {
 
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
-	list_push_back (&ready_list, &t->elem);
+	list_insert_ordered (&ready_list, &t->elem, thread_priority_greater, NULL);
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
 }
@@ -367,7 +380,7 @@ thread_yield (void) {
 
 	old_level = intr_disable ();
 	if (curr != idle_thread)
-		list_push_back (&ready_list, &curr->elem);
+		list_insert_ordered (&ready_list, &curr->elem, thread_priority_greater, NULL);
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
 }
@@ -377,6 +390,9 @@ thread_yield (void) {
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
+	if (ready_has_higher_priority ()) {
+		thread_yield ();
+	}
 }
 
 /* Returns the current thread's priority. */
@@ -653,4 +669,12 @@ allocate_tid (void) {
 	lock_release (&tid_lock);
 
 	return tid;
+}
+static bool	ready_has_higher_priority (void) {
+	if (list_empty (&ready_list)) {
+		return false;
+	}
+	struct thread *curr = thread_current ();
+	struct thread *ready = list_entry (list_front (&ready_list), struct thread, elem);
+	return curr->priority < ready->priority;
 }
