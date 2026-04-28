@@ -1,0 +1,7 @@
+{
+  "files.watcherExclude": {
+    "**/pintos/**/build/tests/**/*.output": false,
+    "**/pintos/**/build/tests/**/*.errors": false,
+    "**/pintos/**/build/tests/**/*.result": false
+  }
+}

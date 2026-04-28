@@ -51,6 +51,8 @@ test_priority_fifo (void)
   lock_init (&lock);
 
   thread_set_priority (PRI_DEFAULT + 2);
+  printf("!![test_priority_fifo] %d스레드 전! priority %d \n", thread_current()->tid, thread_current()->priority);
+
   for (i = 0; i < THREAD_CNT; i++) 
     {
       char name[16];
@@ -60,10 +62,14 @@ test_priority_fifo (void)
       d->iterations = 0;
       d->lock = &lock;
       d->op = &op;
+      //printf("!![test_priority_fifo] %d번 테스트 생성 \n", i);
       thread_create (name, PRI_DEFAULT + 1, simple_thread_func, d);
     }
 
   thread_set_priority (PRI_DEFAULT);
+  //printf("!![test_priority_fifo] %d스레드 후! priority %d \n", thread_current()->tid, thread_current()->priority);
+  
+  
   /* All the other threads now run to termination here. */
   ASSERT (lock.holder == NULL);
 
@@ -86,13 +92,16 @@ test_priority_fifo (void)
 static void 
 simple_thread_func (void *data_) 
 {
+  //printf("!! [simple_thread_func] %d스레드 \n", thread_current()->tid);
   struct simple_thread_data *data = data_;
   int i;
   
   for (i = 0; i < ITER_CNT; i++) 
     {
+      //printf("!! [simple_thread_func] %d 스레드 락 점유 시도\n", thread_current()->tid);
       lock_acquire (data->lock);
       *(*data->op)++ = data->id;
+      //printf("!! [simple_thread_func] 락 점유: %d, 점유 시도: %d\n", data->lock->holder->tid, thread_current()->tid);
       lock_release (data->lock);
       thread_yield ();
     }

@@ -65,11 +65,16 @@ sema_down (struct semaphore *sema) {
 	ASSERT (!intr_context ());
 
 	old_level = intr_disable ();
+	//printf("!![sema_down] %d: 스레드 %d번\n", sema->value, thread_current ()->tid);
 	while (sema->value == 0) {
 		list_push_back (&sema->waiters, &thread_current ()->elem);
+		//list_insert_ordered(&sema->waiters, &thread_current ()->elem, , NULL);
+		//printf("!![sema_down] &sema->waiters : %s스레드 삽입\n", thread_current ()->name);
+	
 		thread_block ();
 	}
 	sema->value--;
+	//printf("!![sema_down] %d: 스레드 %d번\n", sema->value, thread_current ()->tid);
 	intr_set_level (old_level);
 }
 
@@ -109,10 +114,19 @@ sema_up (struct semaphore *sema) {
 	ASSERT (sema != NULL);
 
 	old_level = intr_disable ();
-	if (!list_empty (&sema->waiters))
-		thread_unblock (list_entry (list_pop_front (&sema->waiters),
-					struct thread, elem));
+
+	if (!list_empty (&sema->waiters)){
+
+		// thread_unblock (list_entry (list_pop_front (&sema->waiters),
+		// 	struct thread, elem));
+
+		struct thread *t = list_entry (list_pop_front (&sema->waiters),	struct thread, elem);
+		printf("!![sema_up]&sema->waiters에 %d 스레드 pop \n", t->tid);
+		thread_unblock (t);
+	}
+
 	sema->value++;
+	//printf("!![sema_up] %d, sema->waiters가 비었는가: %d \n", sema->value, list_empty (&sema->waiters));
 	intr_set_level (old_level);
 }
 
@@ -190,6 +204,8 @@ lock_acquire (struct lock *lock) {
 
 	sema_down (&lock->semaphore);
 	lock->holder = thread_current ();
+
+	//printf("!![lock_acquire] %d 스레드 lock 소유\n", thread_current()->tid);
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -224,6 +240,8 @@ lock_release (struct lock *lock) {
 
 	lock->holder = NULL;
 	sema_up (&lock->semaphore);
+	//printf("!![lock_acquire] %d 스레드 lock 해제\n", thread_current()->tid);
+
 }
 
 /* Returns true if the current thread holds LOCK, false

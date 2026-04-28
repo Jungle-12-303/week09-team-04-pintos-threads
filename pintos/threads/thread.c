@@ -273,6 +273,9 @@ thread_create (const char *name, int priority,
 	init_thread (t, name, priority);
 	tid = t->tid = allocate_tid ();
 
+	//!! 스레드에 우선순위 부여 및 갱신
+	t->priority = priority;
+
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
 	/* 스케줄링 시 kernel_thread()가 실행되도록 설정합니다.
@@ -289,7 +292,7 @@ thread_create (const char *name, int priority,
 	/* Add to run queue. */
 	/* 실행 큐에 추가합니다. */
 	thread_unblock (t);
-
+	//printf("!![thread_create] %d스레드, priority%d 실행 큐에 추가\n", t->tid, t->priority);
 	return tid;
 }
 
@@ -423,8 +426,8 @@ thread_yield (void) {
 	//현 스레드가 유휴 스레드가 아니면 ready에 넣기
 	//유휴 스레드는 레디리스트에 안넣는다
 	if (curr != idle_thread)
-		//list_insert_ordered(&ready_list, &curr->elem, priority_greater_comparator, NULL);
-		list_push_back (&ready_list, &curr->elem);
+		list_insert_ordered(&ready_list, &curr->elem, priority_greater_comparator, NULL);
+		//list_push_back (&ready_list, &curr->elem);
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
 }
@@ -433,7 +436,14 @@ thread_yield (void) {
 /* 현재 스레드의 우선순위를 NEW_PRIORITY로 설정합니다. */
 void
 thread_set_priority (int new_priority) {
+
+	bool is_priority_lowered = (thread_current ()->priority > new_priority) ? true : false;
 	thread_current ()->priority = new_priority;
+
+	//현재 실행 중인 스레드의 우선순위가 낮아지면 양보
+	if(is_priority_lowered &&  thread_current()->status == THREAD_RUNNING) {
+		thread_yield();
+	}
 }
 
 /* Returns the current thread's priority. */
