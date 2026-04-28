@@ -280,12 +280,12 @@ real_time_sleep (int64_t num, int32_t denom) {
 	}
 }
 
-//스레드 elem을 wake_tick에 대해서 오름차순으로 정렬 도움
-bool 
-wake_tick_less_comparator(const struct list_elem *a,
-           const struct list_elem *b,
-		   void *aux) {
+// //스레드 elem을 wake_tick에 대해서 오름차순으로 정렬 도움
+// bool 
+// wake_tick_less_comparator(const struct list_elem *a,
+//            const struct list_elem *b,
+// 		   void *aux) {
 	
-	return list_entry(a, struct thread, elem)-> wake_tick < 
-		   list_entry(b, struct thread, elem)-> wake_tick;
-}          
+// 	return list_entry(a, struct thread, elem)-> wake_tick < 
+// 		   list_entry(b, struct thread, elem)-> wake_tick;
+// }          
