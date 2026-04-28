@@ -126,6 +126,7 @@ sema_up (struct semaphore *sema) {
 			should_yield = true;
 		}
 	}
+
 	sema->value++;
 	intr_set_level (old_level);
 
@@ -215,8 +216,18 @@ lock_acquire (struct lock *lock) {
 	ASSERT (!intr_context ());
 	ASSERT (!lock_held_by_current_thread (lock));
 
-	sema_down (&lock->semaphore);
-	lock->holder = thread_current ();
+	if (lock->holder != NULL) {
+		struct thread *current = thread_current ();
+		struct thread *holder = lock->holder;
+		current->donation_elem.prev = NULL;
+		current->donation_elem.next = NULL;
+		list_push_back (&holder->donations, &current->donation_elem);
+		donate_priority (current, holder);
+	}
+	else {
+		sema_down (&lock->semaphore);
+		lock->holder = thread_current ();
+	}
 }
 
 /* Tries to acquires LOCK and returns true if successful or false

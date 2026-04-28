@@ -76,6 +76,7 @@ static void schedule (void);
 static tid_t allocate_tid (void);
 static bool ready_has_higher_priority (void);
 
+
 /* Returns true if T appears to point to a valid thread. */
 /* T가 유효한 thread 구조체를 가리키는 것처럼 보이면 true. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
@@ -127,7 +128,6 @@ thread_init (void) {
 	list_init (&ready_list);
 	list_init (&destruction_req);
 	list_init (&sleeping_list);
-
 	/* Set up a thread structure for the running thread. */
 	initial_thread = running_thread ();
 	init_thread (initial_thread, "main", PRI_DEFAULT);
@@ -288,6 +288,7 @@ thread_unblock (struct thread *t) {
 	list_insert_ordered (&ready_list, &t->elem, thread_priority_greater, NULL);
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
+
 }
 
 /* Adds the current thread to the sleeping list for the specified number of ticks. */
@@ -389,7 +390,8 @@ thread_yield (void) {
 /* 현재 스레드의 우선순위를 NEW_PRIORITY로 설정한다. */
 void
 thread_set_priority (int new_priority) {
-	thread_current ()->priority = new_priority;
+	thread_current ()->original_priority = new_priority;
+	refresh_priority (thread_current ());
 	if (ready_has_higher_priority ()) {
 		thread_yield ();
 	}
@@ -401,6 +403,54 @@ int
 thread_get_priority (void) {
 	return thread_current ()->priority;
 }
+
+void
+donate_priority (struct thread *donor, struct thread *recipient) {
+	if (recipient->priority < donor->priority) {
+		recipient->priority = donor->priority;
+		if (recipient->status == THREAD_READY) {
+			list_remove (&recipient->elem);
+			list_insert_ordered (&ready_list, &recipient->elem, thread_priority_greater, NULL);
+		}
+		if (recipient->status == THREAD_BLOCKED && recipient->elem.prev != NULL) {
+			list_remove (&recipient->elem);
+			list_insert_ordered (&ready_list, &recipient->elem, thread_priority_greater, NULL);
+		}
+		if (recipient->status == THREAD_BLOCKED) {
+			struct thread *next_recipient = list_entry (recipient->elem.prev, struct thread, elem);
+			donate_priority (recipient, next_recipient);
+		}
+	}
+}
+
+void
+remove_with_lock (struct lock *lock) {
+	struct thread *current = thread_current ();
+	struct list_elem *e;
+	for (e = list_begin (&current->donations); e != list_end (&current->donations); e = list_next (e)) {
+		struct thread *t = list_entry (e, struct thread, donation_elem);
+		if (t->status == THREAD_BLOCKED && t->elem.prev != NULL) {
+			struct thread *holder = list_entry (t->elem.prev, struct thread, elem);
+			if (holder == current) {
+				list_remove (e);
+			}
+		}
+	}
+}
+
+void
+refresh_priority (struct thread *t) {
+	int max_priority = t->original_priority;
+	struct list_elem *e;
+	for (e = list_begin (&t->donations); e != list_end (&t->donations); e = list_next (e)) {
+		struct thread *donor = list_entry (e, struct thread, donation_elem);
+		if (donor->priority > max_priority)	{
+			max_priority = donor->priority;
+		}
+	}
+	t->priority = max_priority;
+}
+
 
 /* Sets the current thread's nice value to NICE. */
 void
@@ -489,7 +539,9 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->status = THREAD_BLOCKED;
 	strlcpy (t->name, name, sizeof t->name);
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
+	t->original_priority = priority;
 	t->priority = priority;
+	list_init (&t->donations);
 	t->magic = THREAD_MAGIC;
 }
 
@@ -670,6 +722,7 @@ allocate_tid (void) {
 
 	return tid;
 }
+
 static bool	ready_has_higher_priority (void) {
 	if (list_empty (&ready_list)) {
 		return false;
