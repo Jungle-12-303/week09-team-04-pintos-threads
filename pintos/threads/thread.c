@@ -434,48 +434,68 @@ thread_get_priority (void) {
 
 void
 donate_priority (struct thread *donor, struct thread *recipient) {
-	if (recipient->priority < donor->priority) {
-		recipient->priority = donor->priority;
-		if (recipient->status == THREAD_READY) {
-			list_remove (&recipient->elem);
-			list_insert_ordered (&ready_list, &recipient->elem, thread_priority_greater, NULL);
+	/* donor가 recipient보다 우선순위가 낮거나 같으면 기부할 필요가 없다. */
+	if (recipient->priority >= donor->priority) {
+		return;
+	}
+
+	/* recipient의 effective priority를 donor의 priority로 올린다. */
+	recipient->priority = donor->priority;
+
+	/* recipient가 또 다른 lock을 기다리고 있으면 donation을 chain으로 전파한다. */
+	while (recipient->waiting_lock != NULL) {
+		/* recipient가 기다리는 lock을 들고 있는 다음 donation 대상이다. */
+		struct thread *next_recipient = recipient->waiting_lock->holder;
+		/* lock holder가 없으면 더 이상 donation을 전달할 대상이 없다. */
+		if (next_recipient == NULL) {
+			break;
 		}
-		if (recipient->status == THREAD_BLOCKED && recipient->elem.prev != NULL) {
-			list_remove (&recipient->elem);
-			list_insert_ordered (&ready_list, &recipient->elem, thread_priority_greater, NULL);
+		/* 다음 holder의 priority가 더 낮을 때만 donation을 반영한다. */
+		if (recipient->priority > next_recipient->priority) {
+			next_recipient->priority = recipient->priority;
 		}
-		if (recipient->status == THREAD_BLOCKED) {
-			struct thread *next_recipient = list_entry (recipient->elem.prev, struct thread, elem);
-			donate_priority (recipient, next_recipient);
-		}
+		/* chain을 따라 다음 holder를 기준으로 계속 올라간다. */
+		recipient = next_recipient;
 	}
 }
 
 void
 remove_with_lock (struct lock *lock) {
+	/* 현재 스레드는 lock을 release하는 holder다. */
 	struct thread *current = thread_current ();
-	struct list_elem *e;
-	for (e = list_begin (&current->donations); e != list_end (&current->donations); e = list_next (e)) {
-		struct thread *t = list_entry (e, struct thread, donation_elem);
-		if (t->status == THREAD_BLOCKED && t->elem.prev != NULL) {
-			struct thread *holder = list_entry (t->elem.prev, struct thread, elem);
-			if (holder == current) {
-				list_remove (e);
-			}
+	/* donations 리스트를 처음부터 순회한다. */
+	struct list_elem *e = list_begin (&current->donations);
+	/* 리스트 끝까지 보면서 release하는 lock 때문에 생긴 donation만 제거한다. */
+	while (e != list_end (&current->donations)) {
+		/* donation_elem을 가진 donor thread를 얻는다. */
+		struct thread *donor = list_entry (e, struct thread, donation_elem);
+		/* donor가 이 lock을 기다리고 있었다면 이 donation은 이제 끝난 것이다. */
+		if (donor->waiting_lock == lock) {
+			e = list_remove (e);
+		}
+		/* 다른 lock 때문에 들어온 donation이면 유지하고 다음 원소로 간다. */
+		else {
+			e = list_next (e);
 		}
 	}
 }
 
 void
 refresh_priority (struct thread *t) {
+	/* donation이 모두 사라졌을 때 돌아갈 기준 priority다. */
 	int max_priority = t->original_priority;
+	/* t가 받은 donation 목록을 훑기 위한 iterator다. */
 	struct list_elem *e;
+	/* 받은 donation 중 가장 높은 priority를 찾는다. */
 	for (e = list_begin (&t->donations); e != list_end (&t->donations); e = list_next (e)) {
+		/* donations 리스트의 각 원소는 donor thread의 donation_elem이다. */
 		struct thread *donor = list_entry (e, struct thread, donation_elem);
+		/* donor priority가 현재 최댓값보다 높으면 effective priority 후보를 갱신한다. */
 		if (donor->priority > max_priority)	{
 			max_priority = donor->priority;
 		}
 	}
+	/* original priority와 남은 donations 중 최댓값을 effective priority로 적용한다. */
 	t->priority = max_priority;
 }
 
@@ -570,6 +590,7 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->original_priority = priority;
 	t->priority = priority;
 	list_init (&t->donations);
+	t->waiting_lock = NULL;
 	t->magic = THREAD_MAGIC;
 }
 

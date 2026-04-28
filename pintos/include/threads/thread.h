@@ -115,6 +115,7 @@ struct thread {
 	int original_priority;              /* Original priority before donation. */
 	struct list donations;              /* List of donations. */
 	struct list_elem donation_elem;     /* List element for donation list. */
+	struct lock *waiting_lock;          /* The lock that the thread is waiting for (if any). */
 
 	int64_t wakeup_tick;                   /* Tick to wake up sleeping thread. */
 	                                      /* 잠든 스레드가 다시 깨어나야 하는 타이머 틱. */
