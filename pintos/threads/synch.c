@@ -67,8 +67,8 @@ sema_down (struct semaphore *sema) {
 	old_level = intr_disable ();
 	//printf("!![sema_down] %d: 스레드 %d번\n", sema->value, thread_current ()->tid);
 	while (sema->value == 0) {
-		list_push_back (&sema->waiters, &thread_current ()->elem);
-		//list_insert_ordered(&sema->waiters, &thread_current ()->elem, , NULL);
+		//list_push_back (&sema->waiters, &thread_current ()->elem);
+		list_insert_ordered(&sema->waiters, &thread_current ()->elem, priority_greater_comparator, NULL);
 		//printf("!![sema_down] &sema->waiters : %s스레드 삽입\n", thread_current ()->name);
 	
 		thread_block ();
@@ -121,7 +121,7 @@ sema_up (struct semaphore *sema) {
 		// 	struct thread, elem));
 
 		struct thread *t = list_entry (list_pop_front (&sema->waiters),	struct thread, elem);
-		printf("!![sema_up]&sema->waiters에 %d 스레드 pop \n", t->tid);
+		//printf("!![sema_up]&sema->waiters에 %d 스레드 pop \n", t->tid);
 		thread_unblock (t);
 	}
 

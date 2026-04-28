@@ -86,10 +86,6 @@ static void init_thread (struct thread *, const char *name, int priority);
 static void do_schedule(int status);
 static void schedule (void);
 static tid_t allocate_tid (void);
-//스레드 elem을 priority에 대해서 오름차순으로 정렬 도움
-static bool priority_greater_comparator(const struct list_elem *a,
-		   const struct list_elem *b,
-		   void *aux);
 
 /* Returns true if T appears to point to a valid thread. 
  T가 유효한 스레드를 가리키는지 검사합니다. */
@@ -778,7 +774,7 @@ allocate_tid (void) {
 }
 
 //스레드 elem을 priority에 대해서 오름차순으로 정렬 도움
-static bool 
+bool 
 priority_greater_comparator(const struct list_elem *a,
            const struct list_elem *b,
 		   void *aux) {

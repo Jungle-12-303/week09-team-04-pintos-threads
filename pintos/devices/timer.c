@@ -32,9 +32,6 @@ static intr_handler_func timer_interrupt;
 static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
-static bool wake_tick_less_comparator(const struct list_elem *a,
-		   const struct list_elem *b,
-		   void *aux);
 
 /* Sets up the 8254 Programmable Interval Timer (PIT) to
    interrupt PIT_FREQ times per second, and registers the
@@ -284,7 +281,7 @@ real_time_sleep (int64_t num, int32_t denom) {
 }
 
 //스레드 elem을 wake_tick에 대해서 오름차순으로 정렬 도움
-static bool 
+bool 
 wake_tick_less_comparator(const struct list_elem *a,
            const struct list_elem *b,
 		   void *aux) {
