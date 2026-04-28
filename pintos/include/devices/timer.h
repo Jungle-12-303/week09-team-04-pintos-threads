@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 /* Number of timer interrupts per second. */
+/* 1초에 발생하는 타이머 인터럽트 횟수. */
 #define TIMER_FREQ 100
 
 void timer_init (void);

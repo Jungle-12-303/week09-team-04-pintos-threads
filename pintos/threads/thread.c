@@ -18,27 +18,38 @@
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
+/* 스택 오버플로우를 감지하기 위해 struct thread의 magic 필드에 넣는 임의 값. */
 #define THREAD_MAGIC 0xcd6abf4b
 
 /* Random value for basic thread
    Do not modify this value. */
+/* 기본 스레드 식별에 사용하는 임의 값. 수정하지 않는다. */
 #define THREAD_BASIC 0xd42df210
 
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
+/* 실행 가능하지만 현재 실행 중은 아닌 THREAD_READY 상태의 스레드 목록. */
 static struct list ready_list;
 
 /* Idle thread. */
+/* 실행할 다른 스레드가 없을 때 동작하는 idle 스레드. */
 static struct thread *idle_thread;
 
 /* Initial thread, the thread running init.c:main(). */
+/* init.c:main()을 실행하는 최초 스레드. */
 static struct thread *initial_thread;
 
 /* Lock used by allocate_tid(). */
+/* tid 할당을 보호하기 위해 allocate_tid()에서 사용하는 락. */
 static struct lock tid_lock;
 
 /* Thread destruction requests */
+/* 종료된 스레드의 자원 해제를 나중에 처리하기 위한 요청 목록. */
 static struct list destruction_req;
+
+/* list for sleeping threads */
+/* timer_sleep()으로 잠든 스레드들을 wakeup_tick 기준으로 보관하는 리스트. */
+static struct list sleeping_list;
 
 /* Statistics. */
 static long long idle_ticks;    /* # of timer ticks spent idle. */
@@ -52,6 +63,7 @@ static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
+/* false이면 기본 round-robin 스케줄러를, true이면 MLFQS 스케줄러를 사용한다. */
 bool thread_mlfqs;
 
 static void kernel_thread (thread_func *, void *aux);
@@ -64,6 +76,7 @@ static void schedule (void);
 static tid_t allocate_tid (void);
 
 /* Returns true if T appears to point to a valid thread. */
+/* T가 유효한 thread 구조체를 가리키는 것처럼 보이면 true. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
 
 /* Returns the running thread.
@@ -71,12 +84,14 @@ static tid_t allocate_tid (void);
  * down to the start of a page.  Since `struct thread' is
  * always at the beginning of a page and the stack pointer is
  * somewhere in the middle, this locates the curent thread. */
+/* 현재 CPU 스택 포인터를 페이지 시작 주소로 내림해 현재 실행 중인 스레드를 찾는다. */
 #define running_thread() ((struct thread *) (pg_round_down (rrsp ())))
 
 
 // Global descriptor table for the thread_start.
 // Because the gdt will be setup after the thread_init, we should
 // setup temporal gdt first.
+// thread_init 이후 실제 GDT를 구성하므로, 그 전까지 사용할 임시 GDT.
 static uint64_t gdt[3] = { 0, 0x00af9a000000ffff, 0x00cf92000000ffff };
 
 /* Initializes the threading system by transforming the code
@@ -92,6 +107,7 @@ static uint64_t gdt[3] = { 0, 0x00af9a000000ffff, 0x00cf92000000ffff };
 
    It is not safe to call thread_current() until this function
    finishes. */
+/* 현재 실행 중인 코드를 초기 스레드로 등록하고, ready list와 tid lock 등 스레드 시스템을 초기화한다. */
 void
 thread_init (void) {
 	ASSERT (intr_get_level () == INTR_OFF);
@@ -109,6 +125,7 @@ thread_init (void) {
 	lock_init (&tid_lock);
 	list_init (&ready_list);
 	list_init (&destruction_req);
+	list_init (&sleeping_list);
 
 	/* Set up a thread structure for the running thread. */
 	initial_thread = running_thread ();
@@ -119,6 +136,7 @@ thread_init (void) {
 
 /* Starts preemptive thread scheduling by enabling interrupts.
    Also creates the idle thread. */
+/* idle 스레드를 만들고 인터럽트를 켜서 선점형 스케줄링을 시작한다. */
 void
 thread_start (void) {
 	/* Create the idle thread. */
@@ -135,6 +153,7 @@ thread_start (void) {
 
 /* Called by the timer interrupt handler at each timer tick.
    Thus, this function runs in an external interrupt context. */
+/* 매 타이머 틱마다 인터럽트 핸들러에서 호출되어 통계와 time slice를 갱신한다. */
 void
 thread_tick (void) {
 	struct thread *t = thread_current ();
@@ -155,6 +174,7 @@ thread_tick (void) {
 }
 
 /* Prints thread statistics. */
+/* 스레드 실행 통계를 출력한다. */
 void
 thread_print_stats (void) {
 	printf ("Thread: %lld idle ticks, %lld kernel ticks, %lld user ticks\n",
@@ -176,6 +196,7 @@ thread_print_stats (void) {
    The code provided sets the new thread's `priority' member to
    PRIORITY, but no actual priority scheduling is implemented.
    Priority scheduling is the goal of Problem 1-3. */
+/* 새 커널 스레드를 만들고 ready queue에 넣는다. 생성 실패 시 TID_ERROR를 반환한다. */
 tid_t
 thread_create (const char *name, int priority,
 		thread_func *function, void *aux) {
@@ -210,12 +231,22 @@ thread_create (const char *name, int priority,
 	return tid;
 }
 
+/* Returns true if thread A's wakeup tick is less than thread B's wakeup tick. */
+/* 스레드 A의 깨어날 틱이 스레드 B보다 이르면 true를 반환한다. */
+bool
+thread_wakeup_tick_less (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+	const struct thread *ta = list_entry (a, struct thread, elem_sleep);
+	const struct thread *tb = list_entry (b, struct thread, elem_sleep);
+	return ta->wakeup_tick < tb->wakeup_tick;
+}
+
 /* Puts the current thread to sleep.  It will not be scheduled
    again until awoken by thread_unblock().
 
    This function must be called with interrupts turned off.  It
    is usually a better idea to use one of the synchronization
    primitives in synch.h. */
+/* 현재 스레드를 BLOCKED 상태로 바꾸고 스케줄러를 호출한다. 인터럽트가 꺼진 상태에서 호출해야 한다. */
 void
 thread_block (void) {
 	ASSERT (!intr_context ());
@@ -232,6 +263,7 @@ thread_block (void) {
    be important: if the caller had disabled interrupts itself,
    it may expect that it can atomically unblock a thread and
    update other data. */
+/* BLOCKED 상태의 스레드 T를 READY 상태로 전환해 ready list에 넣는다. */
 void
 thread_unblock (struct thread *t) {
 	enum intr_level old_level;
@@ -245,7 +277,35 @@ thread_unblock (struct thread *t) {
 	intr_set_level (old_level);
 }
 
+/* Adds the current thread to the sleeping list for the specified number of ticks. */
+/* 현재 스레드를 지정된 깨어날 틱에 맞춰 sleeping_list에 넣고 block 상태로 만든다. */
+void thread_add_to_sleeping_list (int64_t ticks) {
+	ASSERT (!intr_context ());
+	ASSERT (intr_get_level () == INTR_OFF);
+
+	struct thread *t = thread_current ();
+	t->wakeup_tick = ticks;
+	list_insert_ordered (&sleeping_list, &t->elem_sleep, thread_wakeup_tick_less, NULL);
+	thread_block ();
+}
+
+/* Wakes up any sleeping threads whose wakeup time has arrived. */
+/* 현재 틱 이하의 wakeup_tick을 가진 잠든 스레드들을 깨운다. */
+void thread_wakeup (int64_t ticks) {
+	ASSERT (intr_get_level () == INTR_OFF);
+
+	while (!list_empty (&sleeping_list)) {
+		struct thread *t = list_entry (list_front (&sleeping_list), struct thread, elem_sleep);
+		if (t->wakeup_tick > ticks) {
+			break;
+		}
+		list_pop_front (&sleeping_list);
+		thread_unblock (t);
+	}
+}
+
 /* Returns the name of the running thread. */
+/* 현재 실행 중인 스레드의 이름을 반환한다. */
 const char *
 thread_name (void) {
 	return thread_current ()->name;
@@ -254,6 +314,7 @@ thread_name (void) {
 /* Returns the running thread.
    This is running_thread() plus a couple of sanity checks.
    See the big comment at the top of thread.h for details. */
+/* 현재 실행 중인 스레드를 반환하고, magic/status로 기본 검사를 수행한다. */
 struct thread *
 thread_current (void) {
 	struct thread *t = running_thread ();
@@ -270,6 +331,7 @@ thread_current (void) {
 }
 
 /* Returns the running thread's tid. */
+/* 현재 실행 중인 스레드의 tid를 반환한다. */
 tid_t
 thread_tid (void) {
 	return thread_current ()->tid;
@@ -277,6 +339,7 @@ thread_tid (void) {
 
 /* Deschedules the current thread and destroys it.  Never
    returns to the caller. */
+/* 현재 스레드를 종료 상태로 전환하고 다시는 호출자에게 돌아가지 않는다. */
 void
 thread_exit (void) {
 	ASSERT (!intr_context ());
@@ -294,6 +357,7 @@ thread_exit (void) {
 
 /* Yields the CPU.  The current thread is not put to sleep and
    may be scheduled again immediately at the scheduler's whim. */
+/* 현재 스레드가 CPU를 양보한다. BLOCKED가 아니라 READY 상태로 다시 스케줄될 수 있다. */
 void
 thread_yield (void) {
 	struct thread *curr = thread_current ();
@@ -309,12 +373,14 @@ thread_yield (void) {
 }
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
+/* 현재 스레드의 우선순위를 NEW_PRIORITY로 설정한다. */
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
 }
 
 /* Returns the current thread's priority. */
+/* 현재 스레드의 effective priority를 반환한다. */
 int
 thread_get_priority (void) {
 	return thread_current ()->priority;
