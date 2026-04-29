@@ -119,19 +119,11 @@ sema_up (struct semaphore *sema) {
 
 	if (!list_empty (&sema->waiters)){
 
-		// thread_unblock (list_entry (list_pop_front (&sema->waiters),
-		// 	struct thread, elem));
-
 		struct thread *t = list_entry (list_pop_front (&sema->waiters),	struct thread, elem);
-
 		//printf("!![sema_up]&sema->waiters에 %d 스레드 pop \n", t->tid);
 		thread_unblock (t); //레디 리스트에 넣음
 		//printf("!![sema_up] ready리스트 크기: %d \n", list_size(&sema->waiters));
 
-		// //세마 웨이트 ->레디 리스트넣은 순간 다시 양보해야 하는지 보기 
-		// if(t->priority > thread_current()->priority){
-		// 	thread_yield();
-		//}
 
 	}
 
@@ -309,10 +301,22 @@ cond_wait (struct condition *cond, struct lock *lock) {
 	ASSERT (lock_held_by_current_thread (lock));
 
 	sema_init (&waiter.semaphore, 0);
-	list_push_back (&cond->waiters, &waiter.elem);
+
+	//list_push_back (&cond->waiters, &waiter.elem);
+	//if(&waiter.elem)
+	//list_insert_ordered(&cond->waiters, &waiter.elem, semalist_priority_greater_comparator, NULL);
+
+	list_entry(&waiter.elem, struct thread, elem);
+
+	printf("!![cond_wait] cond->waiters 크기: %d \n", 
+		list_size(&cond->waiters));
+
 	lock_release (lock);
-	sema_down (&waiter.semaphore);
+
+	sema_down (&waiter.semaphore); //blocked 상태로 계속 대기중.....
 	lock_acquire (lock);
+
+	printf("!![cond_wait] lock 점유중, cond->waiters의 크기 %d \n", list_size(&cond->waiters));
 }
 
 /* If any threads are waiting on COND (protected by LOCK), then
@@ -329,9 +333,14 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED) {
 	ASSERT (!intr_context ());
 	ASSERT (lock_held_by_current_thread (lock));
 
-	if (!list_empty (&cond->waiters))
+	if (!list_empty (&cond->waiters)){
 		sema_up (&list_entry (list_pop_front (&cond->waiters),
-					struct semaphore_elem, elem)->semaphore);
+			struct semaphore_elem, elem)->semaphore);
+
+		printf("!![cond_signal] %d \n", 
+			&list_entry (list_pop_front (&cond->waiters), struct thread, elem)->priority);
+	}
+
 }
 
 /* Wakes up all threads, if any, waiting on COND (protected by
@@ -348,3 +357,5 @@ cond_broadcast (struct condition *cond, struct lock *lock) {
 	while (!list_empty (&cond->waiters))
 		cond_signal (cond, lock);
 }
+
+// struct elem *semalist_priority_greater_comparator(){}
