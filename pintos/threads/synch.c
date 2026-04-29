@@ -128,10 +128,10 @@ sema_up (struct semaphore *sema) {
 		thread_unblock (t); //레디 리스트에 넣음
 		//printf("!![sema_up] ready리스트 크기: %d \n", list_size(&sema->waiters));
 
-		//세마 웨이트 ->레디 리스트넣은 순간 다시 양보해야 하는지 보기 
-		if(t->priority > thread_current()->priority){
-			thread_yield();
-		}
+		// //세마 웨이트 ->레디 리스트넣은 순간 다시 양보해야 하는지 보기 
+		// if(t->priority > thread_current()->priority){
+		// 	thread_yield();
+		//}
 
 	}
 

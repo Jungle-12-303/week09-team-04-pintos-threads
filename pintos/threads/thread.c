@@ -294,8 +294,8 @@ thread_create (const char *name, int priority,
 	// if(thread_current()->priority < priority && thread_current()->status == THREAD_RUNNING)
 	// 	thread_yield();
 
-	if(thread_current()->priority < priority && thread_current()->status == THREAD_RUNNING)
-		thread_yield();
+	// if(thread_current()->priority < priority && thread_current()->status == THREAD_RUNNING)
+	// 	thread_yield();
 
 	//printf("!![thread_create] %d스레드, priority%d 실행 큐에 추가\n", t->tid, t->priority);
 	return tid;
@@ -348,11 +348,16 @@ thread_unblock (struct thread *t) {
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
 
+	t->status = THREAD_READY;
 	list_insert_ordered(&ready_list, &t->elem, priority_greater_comparator, NULL);
 	
+	//readyList에 새로 추가한 스레드가 현재 스레드보다 우선순위 높으면 즉시 양보
+	if(t->priority > thread_current()->priority)
+		thread_yield();
+	
+
 	// printf("!! [thread_unblock] %d스레드 삽입, ready_list 크기 %d\n",
 	// 	t->tid, list_size(&ready_list));
-	t->status = THREAD_READY;
 
 
 	intr_set_level (old_level);
