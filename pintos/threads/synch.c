@@ -121,9 +121,8 @@ sema_up (struct semaphore *sema) {
 
 		struct thread *t = list_entry (list_pop_front (&sema->waiters),	struct thread, elem);
 		//printf("!![sema_up]&sema->waiters에 %d 스레드 pop \n", t->tid);
-		thread_unblock (t); //레디 리스트에 넣음
+		thread_unblock_switch (t); //레디 리스트에 넣음
 		//printf("!![sema_up] ready리스트 크기: %d \n", list_size(&sema->waiters));
-
 
 	}
 

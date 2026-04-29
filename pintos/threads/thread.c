@@ -234,11 +234,12 @@ thread_create (const char *name, int priority,
 	t->tf.eflags = FLAG_IF;
 
 	/* Add to run queue. */
-	thread_unblock (t);
-	
-	if (t->priority > thread_current ()->priority) {
-		thread_yield ();
-	}
+	//thread_unblock (t);
+
+	// if (t->priority > thread_current ()->priority) {
+	// 	thread_yield ();
+	// }
+	thread_unblock_switch(t);
 
 	return tid;
 }
@@ -296,9 +297,23 @@ thread_unblock (struct thread *t) {
 	t->status = THREAD_READY;
 	list_insert_ordered (&ready_list, &t->elem, priority_greater_comparator, NULL);
 
-
-
 	intr_set_level (old_level);
+}
+
+void thread_switch(struct thread *t){
+	//스레드 양보
+	if(t->priority > thread_current()->priority){
+		if(intr_context())
+			intr_yield_on_return();
+		else
+			thread_yield();
+	}
+
+}
+
+void thread_unblock_switch(struct thread *t){
+	thread_unblock(t);
+	thread_switch(t);
 }
 
 /* Adds the current thread to the sleeping list for the specified number of ticks. */
@@ -324,11 +339,8 @@ void thread_wakeup (int64_t ticks) {
 			break;
 		}
 		list_pop_front (&sleeping_list);
-		thread_unblock (t);
+		thread_unblock_switch(t);
 
-		//인터럽트 후 우선순위 양보
-		if (t->priority > thread_current ()->priority)
-			intr_yield_on_return ();
 	}
 }
 
