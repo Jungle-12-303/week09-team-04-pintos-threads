@@ -67,12 +67,13 @@ sema_down (struct semaphore *sema) {
 	old_level = intr_disable ();
 	//printf("!![sema_down] %d: 스레드 %d번\n", sema->value, thread_current ()->tid);
 	while (sema->value == 0) {
-		//list_push_back (&sema->waiters, &thread_current ()->elem);
+
 		list_insert_ordered(&sema->waiters, &thread_current ()->elem, priority_greater_comparator, NULL);
 		//printf("!![sema_down] &sema->waiters : %s스레드 삽입\n", thread_current ()->name);
 	
 		thread_block ();
-		//printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!%s스레드 삽입\n", thread_current ()->name);
+		
+	
 	}
 	sema->value--;
 	//printf("!![sema_down] 세마값 %d으로 감소: 스레드 %d번\n", sema->value, thread_current ()->tid);
@@ -120,6 +121,7 @@ sema_up (struct semaphore *sema) {
 	if (!list_empty (&sema->waiters)){
 
 		struct thread *t = list_entry (list_pop_front (&sema->waiters),	struct thread, elem);
+
 		//printf("!![sema_up]&sema->waiters에 %d 스레드 pop \n", t->tid);
 		thread_unblock_switch (t); //레디 리스트에 넣음
 		//printf("!![sema_up] ready리스트 크기: %d \n", list_size(&sema->waiters));
@@ -258,6 +260,12 @@ lock_held_by_current_thread (const struct lock *lock) {
 struct semaphore_elem {
 	struct list_elem elem;              /* List element. */
 	struct semaphore semaphore;         /* This semaphore. */
+	/* 세마포어의 리스트가 갖는 스레드의 우선순위
+		세마포어의 리스트는 크기는 1이란다 (일대일대응)
+		그래서 이 필드를 추가할 수 있는 듯. 
+		semaphore_elem : list_sizer(&semaphore->waiters) = 1:1
+	 */
+	int priority;
 };
 
 /* Initializes condition variable COND.  A condition variable
@@ -302,20 +310,51 @@ cond_wait (struct condition *cond, struct lock *lock) {
 	sema_init (&waiter.semaphore, 0);
 
 	//list_push_back (&cond->waiters, &waiter.elem);
-	//if(&waiter.elem)
-	//list_insert_ordered(&cond->waiters, &waiter.elem, semalist_priority_greater_comparator, NULL);
+	//정렬하기 위해 우선순위 필드 추가
+	waiter.priority = thread_current()->priority; 
+	list_insert_ordered(&cond->waiters, &waiter.elem, se_priority_greater_comparator, NULL);
 
-	list_entry(&waiter.elem, struct thread, elem);
-
-	printf("!![cond_wait] cond->waiters 크기: %d \n", 
-		list_size(&cond->waiters));
+	//printf("!![semaphore.waiters 크기]%d\n", list_size(&cond->waiters));
 
 	lock_release (lock);
 
+	// printf("!![semaphore.waiters 크기]%d & 현 스레드 prirority: %d \n", 
+	// 	list_size(&cond->waiters), thread_current()->priority );
 	sema_down (&waiter.semaphore); //blocked 상태로 계속 대기중.....
+
 	lock_acquire (lock);
 
-	printf("!![cond_wait] lock 점유중, cond->waiters의 크기 %d \n", list_size(&cond->waiters));
+
+
+	// //현재 삽입하려는 거에 대한... semaphore_elem와 priority
+	// struct semaphore_elem *se = list_entry(&waiter.elem, struct semaphore_elem, elem); //바깥 구조체semaphore_elem로 정리
+	// //struct list_elem *le = list_begin(&se->semaphore.waiters);
+	// int priority = list_entry(list_begin(&se->semaphore.waiters), struct thread, elem)->priority; //그 안의 스레드의 우선순위 추출
+	// printf("!![semaphore.waiters 크기]%d & 스레드 prirority: %d \n", 
+	// 	list_size(&se->semaphore.waiters), priority);
+
+
+	// //cond->waiters 정렬하기
+	// struct list_elem *e = list_begin(&cond->waiters);
+	// while( e != list_end(&cond->waiters)){
+	// 	struct semaphore_elem *comparison = list_entry(e, struct semaphore_elem, elem);
+	// 	int comparison_priority = list_entry(list_begin(&comparison->semaphore.waiters),struct thread, elem)->priority;
+
+	// 	printf("!! [정렬] 현p[%d] vs 대상p[%d]\n", priority, comparison_priority);
+
+	// 	//priority에 따라서 적정한 위치 찾으면 삽입 후 종료
+	// 	if(priority > comparison_priority){
+	// 		list_insert(e, &waiter.elem);
+	// 		break;
+	// 	}
+
+	// 	 e=list_next(e);
+	// }
+
+
+
+
+	//printf("!![cond_wait] lock 점유중, cond->waiters의 크기 %d \n", list_size(&cond->waiters));
 }
 
 /* If any threads are waiting on COND (protected by LOCK), then
@@ -336,8 +375,8 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED) {
 		sema_up (&list_entry (list_pop_front (&cond->waiters),
 			struct semaphore_elem, elem)->semaphore);
 
-		printf("!![cond_signal] %d \n", 
-			&list_entry (list_pop_front (&cond->waiters), struct thread, elem)->priority);
+		// printf("!![cond_signal]cond->waiters에 있는 스레드의 priority: %d \n", 
+		// 	&list_entry (list_pop_front (&cond->waiters), struct thread, elem)->priority);
 	}
 
 }
@@ -357,4 +396,15 @@ cond_broadcast (struct condition *cond, struct lock *lock) {
 		cond_signal (cond, lock);
 }
 
-// struct elem *semalist_priority_greater_comparator(){}
+//컨디션의 리스트에 있는 스레드의 priority 비교 함수
+bool
+se_priority_greater_comparator (const struct list_elem *a,
+		const struct list_elem *b,
+		void *aux) {
+
+	//printf("!! waiters크기 체크: %d , %d \n");
+	struct semaphore_elem *se1 = list_entry(a, struct semaphore_elem, elem);
+	struct semaphore_elem *se2 = list_entry(b, struct semaphore_elem, elem);
+	
+	return se1->priority > se2->priority;
+}

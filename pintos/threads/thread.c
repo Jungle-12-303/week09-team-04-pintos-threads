@@ -262,6 +262,7 @@ priority_greater_comparator (const struct list_elem *a,
 	return ta->priority > tb->priority;
 }
 
+
 /* Puts the current thread to sleep.  It will not be scheduled
    again until awoken by thread_unblock().
 
@@ -408,6 +409,7 @@ thread_yield (void) {
 	old_level = intr_disable ();
 	if (curr != idle_thread)
 		list_insert_ordered (&ready_list, &curr->elem, priority_greater_comparator, NULL);
+	
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
 }

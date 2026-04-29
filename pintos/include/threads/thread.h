@@ -160,7 +160,7 @@ tid_t thread_create (const char *name, int priority, thread_func *, void *);
 bool 
 thread_wakeup_tick_less(const struct list_elem *a, 
 			const struct list_elem *b, 
-			void *aux UNUSED);
+			void *aux);
 		   
 //스레드 elem을 priority에 대해서 오름차순으로 정렬 도움
 bool 
