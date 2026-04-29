@@ -72,9 +72,10 @@ sema_down (struct semaphore *sema) {
 		//printf("!![sema_down] &sema->waiters : %s스레드 삽입\n", thread_current ()->name);
 	
 		thread_block ();
+		//printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!%s스레드 삽입\n", thread_current ()->name);
 	}
 	sema->value--;
-	//printf("!![sema_down] %d: 스레드 %d번\n", sema->value, thread_current ()->tid);
+	//printf("!![sema_down] 세마값 %d으로 감소: 스레드 %d번\n", sema->value, thread_current ()->tid);
 	intr_set_level (old_level);
 }
 
@@ -114,6 +115,7 @@ sema_up (struct semaphore *sema) {
 	ASSERT (sema != NULL);
 
 	old_level = intr_disable ();
+	sema->value++;
 
 	if (!list_empty (&sema->waiters)){
 
@@ -121,11 +123,18 @@ sema_up (struct semaphore *sema) {
 		// 	struct thread, elem));
 
 		struct thread *t = list_entry (list_pop_front (&sema->waiters),	struct thread, elem);
+
 		//printf("!![sema_up]&sema->waiters에 %d 스레드 pop \n", t->tid);
-		thread_unblock (t);
+		thread_unblock (t); //레디 리스트에 넣음
+		//printf("!![sema_up] ready리스트 크기: %d \n", list_size(&sema->waiters));
+
+		//세마 웨이트 ->레디 리스트넣은 순간 다시 양보해야 하는지 보기 
+		if(t->priority > thread_current()->priority){
+			thread_yield();
+		}
+
 	}
 
-	sema->value++;
 	//printf("!![sema_up] %d, sema->waiters가 비었는가: %d \n", sema->value, list_empty (&sema->waiters));
 	intr_set_level (old_level);
 }

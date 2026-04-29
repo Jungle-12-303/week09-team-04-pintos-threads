@@ -30,16 +30,24 @@ test_priority_sema (void)
       thread_create (name, priority, priority_sema_thread, NULL);
     }
 
+  //printf("!! 웨이터스 크기: %d \n", list_size(&sema.waiters));
   for (i = 0; i < 10; i++) 
     {
       sema_up (&sema);
       msg ("Back in main thread."); 
+      // printf("!! 세마 value: %d, waiters크기%d, ready크기: %d \n", 
+      //   sema.value, list_size(&sema.waiters), list_size(&get_readyList));
+
+        // printf("!! 세마 value: %d, waiters크기%d \n", 
+        // sema.value, list_size(&sema.waiters));
+
     }
 }
 
 static void
 priority_sema_thread (void *aux UNUSED) 
 {
+  //printf("!!sema down by %d, sema: %d \n", thread_current()->tid, sema.value);
   sema_down (&sema);
   msg ("Thread %s woke up.", thread_name ());
 }

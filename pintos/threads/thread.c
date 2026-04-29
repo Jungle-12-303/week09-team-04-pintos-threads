@@ -107,6 +107,10 @@ struct list* get_sleepList() {
 	return &sleep_list;
 }
 
+struct list* get_readyList() {
+	return &ready_list;
+}
+
 
 // Global descriptor table for the thread_start.
 // Because the gdt will be setup after the thread_init, we should
@@ -286,8 +290,11 @@ thread_create (const char *name, int priority,
 	/* 실행 큐에 추가합니다. */
 	thread_unblock (t);
 
-	//새로 생성한 스레드의 우선순위(in ready_lsit)에 현 스레드의 일을 양보
-	if(thread_current()->priority < priority)
+	//!!새로 생성한 스레드의 우선순위(in ready_lsit)에 현 스레드의 일을 양보
+	// if(thread_current()->priority < priority && thread_current()->status == THREAD_RUNNING)
+	// 	thread_yield();
+
+	if(thread_current()->priority < priority && thread_current()->status == THREAD_RUNNING)
 		thread_yield();
 
 	//printf("!![thread_create] %d스레드, priority%d 실행 큐에 추가\n", t->tid, t->priority);
@@ -307,6 +314,8 @@ thread_create (const char *name, int priority,
    보통은 synch.h의 동기화 원시 자료구조를 쓰는 편이 더 좋습니다. */
 void
 thread_block (void) {
+	//printf("블록 \n");
+
 	ASSERT (!intr_context ()); 
 	ASSERT (intr_get_level () == INTR_OFF);
 
@@ -340,7 +349,12 @@ thread_unblock (struct thread *t) {
 	ASSERT (t->status == THREAD_BLOCKED);
 
 	list_insert_ordered(&ready_list, &t->elem, priority_greater_comparator, NULL);
+	
+	// printf("!! [thread_unblock] %d스레드 삽입, ready_list 크기 %d\n",
+	// 	t->tid, list_size(&ready_list));
 	t->status = THREAD_READY;
+
+
 	intr_set_level (old_level);
 }
 

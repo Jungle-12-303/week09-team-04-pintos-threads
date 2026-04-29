@@ -117,6 +117,7 @@ struct thread {
 extern bool thread_mlfqs;
 
 struct list* get_sleepList(void);
+struct list* get_readyList(void);
 void thread_init (void);
 void thread_start (void);
 
