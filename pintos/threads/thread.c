@@ -503,7 +503,21 @@ refresh_priority (struct thread *t) {
 /* Sets the current thread's nice value to NICE. */
 void
 thread_set_nice (int nice UNUSED) {
-	/* TODO: Your implementation goes here */
+	struct thread *cur = thread_current ();
+
+	cur->nice = nice;
+	if (thread_mlfqs) {
+		int priority = PRI_MAX - cur->recent_cpu / 4 - nice * 2;
+
+		if (priority > PRI_MAX)
+			priority = PRI_MAX;
+		else if (priority < PRI_MIN)
+			priority = PRI_MIN;
+
+		cur->priority = priority;
+		if (ready_has_higher_priority ())
+			thread_yield ();
+	}
 }
 
 /* Returns the current thread's nice value. */
@@ -589,6 +603,8 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->original_priority = priority;
 	t->priority = priority;
+	t->nice = 0;
+	t->recent_cpu = 0;
 	list_init (&t->donations);
 	t->waiting_lock = NULL;
 	t->magic = THREAD_MAGIC;

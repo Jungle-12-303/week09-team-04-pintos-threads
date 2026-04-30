@@ -113,6 +113,8 @@ struct thread {
 	/*priority*/
 	int priority;                       /* Priority. */
 	int original_priority;              /* Original priority before donation. */
+	int nice;                           /* Niceness for MLFQS. */
+	int recent_cpu;                     /* Recent CPU usage for MLFQS. */
 	struct list donations;              /* List of donations. */
 	struct list_elem donation_elem;     /* List element for donation list. */
 	struct lock *waiting_lock;          /* The lock that the thread is waiting for (if any). */
