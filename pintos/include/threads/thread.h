@@ -110,15 +110,7 @@ struct thread {
 	char name[16];                      /* Name (for debugging purposes). */
 	                                    /* 디버깅용 스레드 이름. */
 
-	/*priority*/
 	int priority;                       /* Priority. */
-	int original_priority;              /* Original priority before donation. */
-	int nice;                           /* Niceness for MLFQS. */
-	int recent_cpu;                     /* Recent CPU usage for MLFQS. */
-	struct list donations;              /* List of donations. */
-	struct list_elem donation_elem;     /* List element for donation list. */
-	struct lock *waiting_lock;          /* The lock that the thread is waiting for (if any). */
-
 	int64_t wakeup_tick;                   /* Tick to wake up sleeping thread. */
 	                                      /* 잠든 스레드가 다시 깨어나야 하는 타이머 틱. */
 
@@ -179,10 +171,6 @@ void thread_yield (void);
 
 int thread_get_priority (void);
 void thread_set_priority (int);
-
-void donate_priority (struct thread *donor, struct thread *recipient);
-void remove_with_lock (struct lock *lock);
-void refresh_priority (struct thread *t);
 
 int thread_get_nice (void);
 void thread_set_nice (int);
