@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1080" viewBox="0 0 1600 1080">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 38px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .subtitle { font: 500 20px 'Segoe UI', Arial, sans-serif; fill: #475569; }
+      .label { font: 700 26px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .text { font: 20px 'Segoe UI', Arial, sans-serif; fill: #1f2937; }
+      .small { font: 17px 'Segoe UI', Arial, sans-serif; fill: #334155; }
+      .panel { fill: #ffffff; stroke: #334155; stroke-width: 2.5; rx: 18; ry: 18; }
+      .list { fill: #eff6ff; stroke: #2563eb; stroke-width: 3; rx: 18; ry: 18; }
+      .struct { fill: #ecfdf5; stroke: #059669; stroke-width: 3; rx: 18; ry: 18; }
+      .memberBlue { fill: #dbeafe; stroke: #60a5fa; stroke-width: 2.5; rx: 14; ry: 14; }
+      .memberGreen { fill: #d1fae5; stroke: #34d399; stroke-width: 2.5; rx: 14; ry: 14; }
+      .memberOrange { fill: #ffedd5; stroke: #fb923c; stroke-width: 2.5; rx: 14; ry: 14; }
+      .memberPink { fill: #fce7f3; stroke: #f472b6; stroke-width: 2.5; rx: 14; ry: 14; }
+      .memberGray { fill: #f1f5f9; stroke: #94a3b8; stroke-width: 2.2; rx: 12; ry: 12; }
+      .thread { fill: #fdf2f8; stroke: #db2777; stroke-width: 3; rx: 16; ry: 16; }
+      .arrowDark { stroke: #0f172a; stroke-width: 4; fill: none; marker-end: url(#arrowDark); }
+      .arrowBlue { stroke: #2563eb; stroke-width: 4; fill: none; marker-end: url(#arrowBlue); }
+      .arrowGreen { stroke: #059669; stroke-width: 4; fill: none; marker-end: url(#arrowGreen); }
+      .arrowPink { stroke: #db2777; stroke-width: 4; fill: none; marker-end: url(#arrowPink); }
+    </style>
+    <marker id="arrowDark" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto">
+      <polygon points="0 0, 14 7, 0 14" fill="#0f172a"/>
+    </marker>
+    <marker id="arrowBlue" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto">
+      <polygon points="0 0, 14 7, 0 14" fill="#2563eb"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto">
+      <polygon points="0 0, 14 7, 0 14" fill="#059669"/>
+    </marker>
+    <marker id="arrowPink" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto">
+      <polygon points="0 0, 14 7, 0 14" fill="#db2777"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1600" height="1080"/>
+  <text x="56" y="68" class="title">semaphore_elem 중심 구조도</text>
+  <text x="56" y="108" class="subtitle">리스트 원소, 내부 멤버, 실제 대기 스레드의 연결을 구조적으로 정리</text>
+
+  <rect x="54" y="134" width="1492" height="892" class="panel"/>
+
+  <rect x="92" y="188" width="380" height="324" class="list"/>
+  <text x="120" y="236" class="label">cond-&gt;waiters</text>
+  <text x="120" y="274" class="text">struct list</text>
+  <rect x="126" y="326" width="96" height="60" class="memberGray"/>
+  <text x="150" y="364" class="small">elem</text>
+  <rect x="238" y="326" width="96" height="60" class="memberBlue"/>
+  <text x="262" y="364" class="small">elem</text>
+  <rect x="350" y="326" width="96" height="60" class="memberGray"/>
+  <text x="374" y="364" class="small">elem</text>
+  <text x="120" y="438" class="text">리스트 원소 타입: waiter.elem</text>
+
+  <rect x="540" y="188" width="548" height="654" class="struct"/>
+  <text x="572" y="236" class="label">struct semaphore_elem waiter</text>
+
+  <rect x="584" y="300" width="202" height="136" class="memberBlue"/>
+  <text x="650" y="350" class="label">elem</text>
+  <text x="614" y="392" class="text">struct list_elem</text>
+
+  <rect x="834" y="300" width="212" height="136" class="memberOrange"/>
+  <text x="876" y="350" class="label">priority</text>
+  <text x="914" y="392" class="text">int</text>
+
+  <rect x="584" y="476" width="462" height="332" class="memberGreen"/>
+  <text x="620" y="526" class="label">semaphore</text>
+  <text x="620" y="566" class="text">struct semaphore</text>
+
+  <rect x="624" y="602" width="162" height="112" class="memberGray"/>
+  <text x="664" y="646" class="label">value</text>
+  <text x="650" y="686" class="text">unsigned</text>
+
+  <rect x="826" y="590" width="186" height="144" class="memberPink"/>
+  <text x="850" y="636" class="label">waiters</text>
+  <text x="862" y="678" class="text">struct list</text>
+
+  <rect x="1160" y="188" width="336" height="320" class="thread"/>
+  <text x="1190" y="236" class="label">thread</text>
+  <text x="1190" y="274" class="text">current waiting thread</text>
+  <rect x="1194" y="332" width="126" height="68" class="memberPink"/>
+  <text x="1238" y="374" class="small">elem</text>
+  <rect x="1338" y="332" width="126" height="68" class="memberGray"/>
+  <text x="1366" y="374" class="small">priority</text>
+  <text x="1190" y="446" class="text">sema_down()에서 이 thread의 elem 이</text>
+  <text x="1190" y="478" class="text">waiter.semaphore.waiters에 들어간다</text>
+
+  <rect x="1160" y="552" width="336" height="276" class="list"/>
+  <text x="1190" y="600" class="label">waiter.semaphore.waiters</text>
+  <text x="1190" y="638" class="text">struct list</text>
+  <rect x="1194" y="694" width="208" height="74" class="memberPink"/>
+  <text x="1218" y="740" class="text">thread_current()-&gt;elem</text>
+
+  <path d="M472 356 L584 368" class="arrowBlue"/>
+  <path d="M786 368 L834 368" class="arrowDark"/>
+  <path d="M1012 662 L1160 724" class="arrowPink"/>
+  <path d="M1328 400 L1328 552" class="arrowPink"/>
+
+  <rect x="92" y="560" width="380" height="268" class="memberOrange"/>
+  <text x="120" y="608" class="label">정렬 의미</text>
+  <text x="120" y="662" class="text">cond-&gt;waiters 는</text>
+  <text x="120" y="698" class="text">thread 리스트가 아니라</text>
+  <text x="120" y="734" class="text">semaphore_elem 의 elem 리스트</text>
+  <text x="120" y="786" class="text">정렬 기준은</text>
+  <text x="120" y="822" class="text">waiter 안에서 바로 꺼낼 수 있어야 한다</text>
+
+  <rect x="540" y="872" width="956" height="126" class="memberOrange"/>
+  <text x="574" y="918" class="label">왜 1:1 대응으로 볼 수 있는가</text>
+  <text x="574" y="956" class="text">cond_wait() 한 번 호출할 때 waiter 하나가 생기고, 그 waiter.semaphore 에서 잠드는 현재 스레드도 하나다.</text>
+  <text x="574" y="990" class="text">그래서 waiter 하나가 대기 스레드 하나를 대표한다고 보고 waiter.priority 를 넣어 cond-&gt;waiters 를 정렬할 수 있다.</text>
+
+</svg>
