@@ -44,15 +44,45 @@ _start (int argc, char *argv[]) {
 
 즉 흐름은 다음과 같습니다.
 
-```mermaid
-flowchart TD
-    A["커널: process_exec(command_line)"] --> B["ELF 실행 파일 load"]
-    B --> C["사용자 스택에 문자열과 argv 배열 배치"]
-    C --> D["%rdi = argc, %rsi = argv 설정"]
-    D --> E["do_iret(): user mode로 진입"]
-    E --> F["_start(argc, argv)"]
-    F --> G["main(argc, argv)"]
-    G --> H["exit(main의 반환값)"]
+```text
++-----------------------------------+
+| 커널: process_exec(command_line)   |
++-----------------------------------+
+                  |
+                  v
++-----------------------------------+
+| ELF 실행 파일 load                 |
++-----------------------------------+
+                  |
+                  v
++-----------------------------------+
+| 사용자 스택에 문자열과 argv 배치   |
++-----------------------------------+
+                  |
+                  v
++-----------------------------------+
+| %rdi = argc, %rsi = argv 설정      |
++-----------------------------------+
+                  |
+                  v
++-----------------------------------+
+| do_iret(): user mode로 진입        |
++-----------------------------------+
+                  |
+                  v
++-----------------------------------+
+| _start(argc, argv)                 |
++-----------------------------------+
+                  |
+                  v
++-----------------------------------+
+| main(argc, argv)                   |
++-----------------------------------+
+                  |
+                  v
++-----------------------------------+
+| exit(main의 반환값)                |
++-----------------------------------+
 ```
 
 일반적인 C 프로그램에서는 OS가 프로세스를 시작할 때 이미 `argc`, `argv`를 준비해 줍니다. Pintos에서는 우리가 직접 그 OS 역할을 구현해야 합니다.
@@ -193,20 +223,44 @@ rsp = rsp & ~0x7
 
 전체 구현 흐름은 다음 순서로 생각하면 됩니다.
 
-```mermaid
-flowchart TD
-    A["command_line 복사본 받기"] --> B["strtok_r로 공백 기준 parsing"]
-    B --> C["argv_tokens 배열에 단어 주소 저장"]
-    C --> D["argv_tokens[0]만 실행 파일 이름으로 load"]
-    D --> E["setup_stack으로 USER_STACK 페이지 매핑"]
-    E --> F["문자열들을 사용자 스택에 복사"]
-    F --> G["rsp를 8바이트 정렬"]
-    G --> H["NULL sentinel push"]
-    H --> I["문자열 주소들을 역순으로 push"]
-    I --> J["fake return address push"]
-    J --> K["if_->R.rdi = argc"]
-    K --> L["if_->R.rsi = argv 시작 주소"]
-    L --> M["if_->rsp = 최종 rsp"]
+```text
+1. command_line 복사본 받기
+          |
+          v
+2. strtok_r로 공백 기준 parsing
+          |
+          v
+3. argv_tokens 배열에 단어 주소 저장
+          |
+          v
+4. argv_tokens[0]만 실행 파일 이름으로 load
+          |
+          v
+5. setup_stack으로 USER_STACK 페이지 매핑
+          |
+          v
+6. 문자열들을 사용자 스택에 복사
+          |
+          v
+7. rsp를 8바이트 정렬
+          |
+          v
+8. NULL sentinel push
+          |
+          v
+9. 문자열 주소들을 역순으로 push
+          |
+          v
+10. fake return address push
+          |
+          v
+11. if_->R.rdi = argc
+          |
+          v
+12. if_->R.rsi = argv 시작 주소
+          |
+          v
+13. if_->rsp = 최종 rsp
 ```
 
 ## 어느 파일의 어느 코드에 구현해야 할까?
