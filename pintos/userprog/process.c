@@ -359,9 +359,19 @@ load (const char *file_name, struct intr_frame *if_) {
 		argv[argc++] = token;
 		argc++;
 	}
+	if_->R.rsi = argc; //argc를 rsi 레지스터에 저장
 
 	/* put arguments on stack */
+	if_->rsp = USER_STACK; //스택 포인터 초기화
 	
+	for (i = argc - 1; i >= 0; i--){
+		if_->rsp -= strlen (argv[i]) + 1; //문자열 끝까지 rsp를 내리고
+		memcpy ((void *) if_->rsp, argv[i], strlen (argv[i]) + 1); //문자열을 스택에 복사
+		argv[i] = (char *) if_->rsp; //argv[i]에 스택에 복사된 문자열의 주소를 저장
+	}
+	if_ ->rsp -= (argc + 1) * sizeof (char *); //스택 끝까지 rsp를 내리고
+	memcpy ((void *) if_->rsp, argv, argc * sizeof (char *)); //argv를 스택에 복사(포인터만)
+	((char **) if_->rsp)[argc] = NULL; // argv[argc] = NULL 로 설정(리스트 마지막)
 
 
 	/* Open executable file. */
@@ -445,9 +455,6 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
-
-	 /* Set up argument passing. rdi: int  rsi: list_pointer rsp: stack_pointer*/
-	
 
 	success = true;
 
