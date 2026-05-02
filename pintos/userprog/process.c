@@ -22,6 +22,8 @@
 #include "vm/vm.h"
 #endif
 
+#define MAX_ARGS 32
+
 static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
@@ -328,12 +330,39 @@ load (const char *file_name, struct intr_frame *if_) {
 	off_t file_ofs;
 	bool success = false;
 	int i;
+	char *save_ptr, *parsed_file_name;
+	char *argv[MAX_ARGS];
+	int argc = 0;
 
 	/* Allocate and activate page directory. */
 	t->pml4 = pml4_create ();
 	if (t->pml4 == NULL)
 		goto done;
 	process_activate (thread_current ());
+
+	/* Parse command line arguments. */
+	if (file_name == NULL)
+		goto done;
+
+	parsed_file_name = strtok_r (file_name, " ", &save_ptr);
+	file_name = parsed_file_name;
+	
+	/* Count arguments & put in argv */
+	argv[0] = parsed_file_name;
+	argc = 1;
+	for (char *token = strtok_r (NULL, " ", &save_ptr); token != NULL;
+			token = strtok_r (NULL, " ", &save_ptr)) {
+		if (argc >= MAX_ARGS) {
+			printf ("Too many arguments. Maximum is %d.\n", MAX_ARGS);
+				goto done;
+		}
+		argv[argc++] = token;
+		argc++;
+	}
+
+	/* put arguments on stack */
+	
+
 
 	/* Open executable file. */
 	file = filesys_open (file_name);
@@ -416,6 +445,9 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
+
+	 /* Set up argument passing. rdi: int  rsi: list_pointer rsp: stack_pointer*/
+	
 
 	success = true;
 
