@@ -331,7 +331,7 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
  * Returns true if successful, false otherwise. */
 static bool
 load (const char *file_name, struct intr_frame *if_) {
-
+	//(!!) file name parsing
 	char* arg;
 	char* save_ptr;
 
@@ -354,7 +354,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	process_activate (thread_current ());
 
 	/* Open executable file. */
-
+	// file = filesys_open (file_name);
 	file = filesys_open (arg);
 	if (file == NULL) {
 		printf ("load: %s: open failed\n", arg);
@@ -432,13 +432,12 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	/* Start address. */
 	if_->rip = ehdr.e_entry;
-	printf("!!RIP: %p\n", if_->rip);
 
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
-	size_t argv[128];
 	char* temp_argv[128];
-	void* next = USER_STACK;
+	char* argv[128];
+	if_->rsp = USER_STACK;
 	int argc = 1;
 
 	temp_argv[0] = arg;
@@ -449,27 +448,28 @@ load (const char *file_name, struct intr_frame *if_) {
 		argc++;
 	}
 	temp_argv[argc] = NULL;
-	next = (char*)next - (((int)next + 7) % 8);
-	if_->rsp = next;
 
+	for (int i = argc - 1; i >= 0 ; i--){
 
-	for (int i = 0; i < argc ; i++){
-
-		printf("!!temp_argv: %s\n", temp_argv[i]);
-		printf("!! Current Thread: %p \n", (struct thread *) (pg_round_down (rrsp ())));
-		printf("!! strlen: %d\n",strlen(temp_argv[i]) );
-		next -= strlen(temp_argv[i]) + 1;
-		if_->rsp = next;
-		memcpy(next, temp_argv[i], strlen(temp_argv[i]) + 1);
-		argv[i] = next;
+		// printf("!!temp_argv: %s\n", temp_argv[i]);
+		// printf("!! Current Thread: %p \n", (struct thread *) (pg_round_down (rrsp ())));
+		// printf("!! strlen: %d\n",strlen(temp_argv[i]) );
+		if_->rsp -= strlen(temp_argv[i]) + 1;
+		memcpy(if_->rsp, temp_argv[i], strlen(temp_argv[i]) + 1);
 
 	}
+	if_->rsp = (uint64_t)if_->rsp & ~7;
 
-
+	if_->rsp -= 8;
+	memcpy(if_->rsp, 0, 8);
 
 	argv[argc] = NULL;
 
-	if_->R.rsi = argv;
+	for (int i = argc -1; i >= 0; i--){
+
+	}
+	if_->rsp = argv;
+	if_->R.rsi = if_->rsp;
 	if_->R.rdi = argc;
 
 	success = true;

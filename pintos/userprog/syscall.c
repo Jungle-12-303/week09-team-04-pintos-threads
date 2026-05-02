@@ -41,6 +41,30 @@ syscall_init (void) {
 void
 syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
+	uint64_t syscall_nbr = f->R.rax;
+	uint64_t arg0 = f->R.rdi;
+	uint64_t arg1 = f->R.rsi;
+	uint64_t arg2 = f->R.rdx;
+
+	switch (syscall_nbr)
+	{
+	case SYS_WRITE:
+		int printed = sys_write(arg0, arg1, arg2);
+		f->R.rax = printed;
+		return;
+
+	default:
+		printf("!! No Matched System Call!\n");
+	}
+
 	printf ("system call!\n");
 	thread_exit ();
+}
+
+int
+sys_write (uint64_t fd, uint64_t buffer, uint64_t size){
+	if (fd == 1){
+		putbuf(buffer, size);
+		return size;
+	}
 }
