@@ -22,6 +22,8 @@
 #include "vm/vm.h"
 #endif
 
+#define STRING_END '\0'
+
 static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
@@ -204,6 +206,15 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+
+	//  while(true){
+	// 	if(child_tid를 순회??)
+	// 		break;
+	//  }
+	while(true){
+
+	}
+
 	return -1;
 }
 
@@ -335,12 +346,21 @@ load (const char *file_name, struct intr_frame *if_) {
 		goto done;
 	process_activate (thread_current ());
 
-	/* Open executable file. */
-	file = filesys_open (file_name);
-	if (file == NULL) {
-		printf ("load: %s: open failed\n", file_name);
-		goto done;
+	{
+		//!! 파일명 검색 전 파일명만 파싱
+		char *save_ptr;
+		char temp_name[strlen(file_name)+1];
+		strlcpy(temp_name , file_name, strlen(file_name)+1);
+		char *program_name  = strtok_r(temp_name , " ", &save_ptr);
+
+		/* Open executable file. */
+		file = filesys_open (program_name);
+		if (file == NULL) {
+			printf ("load: %s: open failed\n", file_name);
+			goto done;
+		}
 	}
+
 
 	/* Read and verify executable header. */
 	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -416,6 +436,50 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
+
+	 //!!
+	 //!! * Stores the executable's entry point into *RIP
+	 //!! * its initial stack pointer into *RSP
+	 //!!
+	{
+		//1. 파싱
+		//if(strlen(file_name) < )
+		int argc=0; 
+		char *argv[strlen(file_name)];
+
+		//파일명 임시 복사
+		char temp_name[strlen(file_name)+1];
+		strlcpy(temp_name, file_name, strlen(file_name)+1);
+
+		//argument 토큰 만들기
+		char *token, *save_ptr;
+		for (token = strtok_r (temp_name, " ", &save_ptr); 
+			token != NULL; token = strtok_r (NULL, " ", &save_ptr)){
+				// token[strlen(token)] += STRING_END;
+				printf ("'%s'\n", token);
+
+				*argv[strlen(token)+1];
+				memcpy(argv[argc], token, strlen(token)+1);
+				++argc;
+			}
+		
+		//2. 스택에 넣기
+		uint64_t *addr = if_->rsp; //시작 지점
+		for(int tokens_nums = argc; tokens_nums > -1; --tokens_nums){
+			addr -= sizeof(argv[tokens_nums]);
+			memcpy(addr, &argv[tokens_nums], sizeof(argv[tokens_nums]));
+			//address
+		}
+
+		//3. 레지스터
+		if_->R.rdi = argc;
+		if_->R.rsi = USER_STACK-1;
+		
+	}
+	
+
+	//(uintptr_t ofs, const void *buf_, size_t size, bool ascii)
+	//hex_dump(addr, , , False);
 
 	success = true;
 
