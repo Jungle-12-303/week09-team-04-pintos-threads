@@ -89,10 +89,10 @@ static bool ready_has_higher_priority (void);
 #define running_thread() ((struct thread *) (pg_round_down (rrsp ())))
 
 
-// Global descriptor table for the thread_start.
-// Because the gdt will be setup after the thread_init, we should
-// setup temporal gdt first.
-// thread_init 이후 실제 GDT를 구성하므로, 그 전까지 사용할 임시 GDT.
+
+
+
+
 static uint64_t gdt[3] = { 0, 0x00af9a000000ffff, 0x00cf92000000ffff };
 
 /* Initializes the threading system by transforming the code
@@ -575,26 +575,26 @@ thread_launch (struct thread *th) {
 			"movq %%rdi, 72(%%rax)\n"
 			"movq %%rbp, 80(%%rax)\n"
 			"movq %%rdx, 88(%%rax)\n"
-			"pop %%rbx\n"              // Saved rcx
+			"pop %%rbx\n"
 			"movq %%rbx, 96(%%rax)\n"
-			"pop %%rbx\n"              // Saved rbx
+			"pop %%rbx\n"
 			"movq %%rbx, 104(%%rax)\n"
-			"pop %%rbx\n"              // Saved rax
+			"pop %%rbx\n"
 			"movq %%rbx, 112(%%rax)\n"
 			"addq $120, %%rax\n"
 			"movw %%es, (%%rax)\n"
 			"movw %%ds, 8(%%rax)\n"
 			"addq $32, %%rax\n"
-			"call __next\n"         // read the current rip.
+			"call __next\n"
 			"__next:\n"
 			"pop %%rbx\n"
 			"addq $(out_iret -  __next), %%rbx\n"
-			"movq %%rbx, 0(%%rax)\n" // rip
-			"movw %%cs, 8(%%rax)\n"  // cs
+			"movq %%rbx, 0(%%rax)\n"
+			"movw %%cs, 8(%%rax)\n"
 			"pushfq\n"
 			"popq %%rbx\n"
-			"mov %%rbx, 16(%%rax)\n" // eflags
-			"mov %%rsp, 24(%%rax)\n" // rsp
+			"mov %%rbx, 16(%%rax)\n"
+			"mov %%rsp, 24(%%rax)\n"
 			"movw %%ss, 32(%%rax)\n"
 			"mov %%rcx, %%rdi\n"
 			"call do_iret\n"

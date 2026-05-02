@@ -18,9 +18,11 @@
 #include "threads/mmu.h"
 #include "threads/vaddr.h"
 #include "intrinsic.h"
+
 #ifdef VM
 #include "vm/vm.h"
 #endif
+
 
 static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
@@ -204,6 +206,13 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+	while (1){
+		if (child_tid == TID_ERROR){
+			break;
+		}
+
+
+	}
 	return -1;
 }
 
@@ -322,6 +331,15 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
  * Returns true if successful, false otherwise. */
 static bool
 load (const char *file_name, struct intr_frame *if_) {
+
+	char* arg;
+	char* save_ptr;
+
+	arg = strtok_r(file_name, " ", &save_ptr);
+	if (arg == NULL){
+		goto done;
+	}
+
 	struct thread *t = thread_current ();
 	struct ELF ehdr;
 	struct file *file = NULL;
@@ -336,9 +354,10 @@ load (const char *file_name, struct intr_frame *if_) {
 	process_activate (thread_current ());
 
 	/* Open executable file. */
-	file = filesys_open (file_name);
+
+	file = filesys_open (arg);
 	if (file == NULL) {
-		printf ("load: %s: open failed\n", file_name);
+		printf ("load: %s: open failed\n", arg);
 		goto done;
 	}
 
@@ -346,11 +365,11 @@ load (const char *file_name, struct intr_frame *if_) {
 	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
 			|| memcmp (ehdr.e_ident, "\177ELF\2\1\1", 7)
 			|| ehdr.e_type != 2
-			|| ehdr.e_machine != 0x3E // amd64
+			|| ehdr.e_machine != 0x3E
 			|| ehdr.e_version != 1
 			|| ehdr.e_phentsize != sizeof (struct Phdr)
 			|| ehdr.e_phnum > 1024) {
-		printf ("load: %s: error loading executable\n", file_name);
+		printf ("load: %s: error loading executable\n", arg);
 		goto done;
 	}
 
@@ -413,9 +432,45 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	/* Start address. */
 	if_->rip = ehdr.e_entry;
+	printf("!!RIP: %p\n", if_->rip);
 
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
+	size_t argv[128];
+	char* temp_argv[128];
+	void* next = USER_STACK;
+	int argc = 1;
+
+	temp_argv[0] = arg;
+
+	for (arg = strtok_r(NULL, " ", &save_ptr); arg != NULL; arg = strtok_r(NULL, " ", &save_ptr)){
+		printf("!!Arg: %s\n", arg);
+		temp_argv[argc] = arg;
+		argc++;
+	}
+	temp_argv[argc] = NULL;
+	next = (char*)next - (((int)next + 7) % 8);
+	if_->rsp = next;
+
+
+	for (int i = 0; i < argc ; i++){
+
+		printf("!!temp_argv: %s\n", temp_argv[i]);
+		printf("!! Current Thread: %p \n", (struct thread *) (pg_round_down (rrsp ())));
+		printf("!! strlen: %d\n",strlen(temp_argv[i]) );
+		next -= strlen(temp_argv[i]) + 1;
+		if_->rsp = next;
+		memcpy(next, temp_argv[i], strlen(temp_argv[i]) + 1);
+		argv[i] = next;
+
+	}
+
+
+
+	argv[argc] = NULL;
+
+	if_->R.rsi = argv;
+	if_->R.rdi = argc;
 
 	success = true;
 
