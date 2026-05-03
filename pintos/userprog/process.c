@@ -54,6 +54,7 @@ process_create_initd (const char *file_name) {
 
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
+
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
 	return tid;
@@ -206,13 +207,7 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
-	while (1){
-		if (child_tid == TID_ERROR){
-			break;
-		}
-
-
-	}
+	sema_down(&thread_current()->child_sema);
 	return -1;
 }
 
@@ -225,7 +220,12 @@ process_exit (void) {
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
+	//printf ("%s: exit(%d)\n", ...);
+	printf ("%s: exit code\n", curr->name);
 	process_cleanup ();
+
+	sema_up(&curr->child_sema);
+
 }
 
 /* Free the current process's resources. */
@@ -435,42 +435,34 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
-	char* temp_argv[128];
 	char* argv[128];
 	if_->rsp = USER_STACK;
-	int argc = 1;
+	int argc = 0;
 
-	temp_argv[0] = arg;
-
-	for (arg = strtok_r(NULL, " ", &save_ptr); arg != NULL; arg = strtok_r(NULL, " ", &save_ptr)){
-		printf("!!Arg: %s\n", arg);
-		temp_argv[argc] = arg;
+	for (arg = strtok_r(file_name, " ", &save_ptr); arg != NULL; arg = strtok_r(NULL, " ", &save_ptr)){
+		if_->rsp -= strlen(arg) + 1;
+		argv[argc] = if_->rsp;
+		memcpy(if_->rsp, arg, strlen(arg) + 1);
 		argc++;
 	}
-	temp_argv[argc] = NULL;
 
-	for (int i = argc - 1; i >= 0 ; i--){
-
-		// printf("!!temp_argv: %s\n", temp_argv[i]);
-		// printf("!! Current Thread: %p \n", (struct thread *) (pg_round_down (rrsp ())));
-		// printf("!! strlen: %d\n",strlen(temp_argv[i]) );
-		if_->rsp -= strlen(temp_argv[i]) + 1;
-		memcpy(if_->rsp, temp_argv[i], strlen(temp_argv[i]) + 1);
-
-	}
 	if_->rsp = (uint64_t)if_->rsp & ~7;
 
 	if_->rsp -= 8;
-	memcpy(if_->rsp, 0, 8);
-
+	memset(if_->rsp, 0, 8);
 	argv[argc] = NULL;
 
-	for (int i = argc -1; i >= 0; i--){
-
+	for (int i = argc - 1; i >= 0 ; i--){
+		if_->rsp -= 8;
+		memcpy(if_->rsp, &argv[i], 8);
 	}
-	if_->rsp = argv;
+	
 	if_->R.rsi = if_->rsp;
 	if_->R.rdi = argc;
+
+	if_->rsp -= 8;
+	memset(if_->rsp, 0, 8);
+	
 
 	success = true;
 

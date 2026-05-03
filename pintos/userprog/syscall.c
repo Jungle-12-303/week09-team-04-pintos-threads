@@ -52,7 +52,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		int printed = sys_write(arg0, arg1, arg2);
 		f->R.rax = printed;
 		return;
-
+	case SYS_EXIT:
+		printf("!! Exit!\n");
+		break;
 	default:
 		printf("!! No Matched System Call!\n");
 	}
