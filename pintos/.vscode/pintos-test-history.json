@@ -1,0 +1,71 @@
+{
+  "threads": {
+    "tests/threads/priority-change": {
+      "count": 1,
+      "last_used": 1777615420.912,
+      "last_action": "run"
+    },
+    "tests/threads/alarm-priority": {
+      "count": 1,
+      "last_used": 1777615459.897,
+      "last_action": "run"
+    },
+    "tests/threads/priority-fifo": {
+      "count": 1,
+      "last_used": 1777615459.897,
+      "last_action": "run"
+    },
+    "tests/threads/priority-preempt": {
+      "count": 1,
+      "last_used": 1777615459.897,
+      "last_action": "run"
+    },
+    "tests/threads/priority-sema": {
+      "count": 1,
+      "last_used": 1777615459.897,
+      "last_action": "run"
+    },
+    "tests/threads/priority-condvar": {
+      "count": 1,
+      "last_used": 1777615459.897,
+      "last_action": "run"
+    },
+    "tests/threads/alarm-single": {
+      "count": 1,
+      "last_used": 1777649528.393,
+      "last_action": "debug"
+    }
+  },
+  "userprog": {
+    "tests/userprog/args-none": {
+      "count": 42,
+      "last_used": 1777821601.6,
+      "last_action": "run"
+    },
+    "tests/userprog/args-single": {
+      "count": 23,
+      "last_used": 1777649314.492,
+      "last_action": "run"
+    },
+    "tests/userprog/args-multiple": {
+      "count": 1,
+      "last_used": 1777649377.287,
+      "last_action": "run"
+    },
+    "tests/userprog/args-many": {
+      "count": 1,
+      "last_used": 1777650846.594,
+      "last_action": "run"
+    },
+    "tests/userprog/args-dbl-space": {
+      "count": 1,
+      "last_used": 1777858427.046,
+      "last_action": "run"
+    },
+    "tests/userprog/halt": {
+      "count": 1,
+      "last_used": 1777859837.048,
+      "last_action": "run"
+    }
+  }
+}

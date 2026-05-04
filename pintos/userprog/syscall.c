@@ -7,9 +7,16 @@
 #include "userprog/gdt.h"
 #include "threads/flags.h"
 #include "intrinsic.h"
+#include "threads/init.h"
+#include "userprog/process.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
+
+static int sys_halt (void);
+static void sys_exit (uint64_t status);
+static int sys_wait (tid_t child_tid);
+static int sys_write (uint64_t fd, uint64_t buffer, uint64_t size);
 
 /* System call.
  *
@@ -23,7 +30,6 @@ void syscall_handler (struct intr_frame *);
 #define MSR_STAR 0xc0000081         /* Segment selector msr */
 #define MSR_LSTAR 0xc0000082        /* Long mode SYSCALL target */
 #define MSR_SYSCALL_MASK 0xc0000084 /* Mask for the eflags */
-#define MAX_BUFFER_SIZE 1<<7 //버퍼 최대 입력 사이즈(128바이트)
 
 void
 syscall_init (void) {
@@ -42,147 +48,58 @@ syscall_init (void) {
 void
 syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
+	uint64_t syscall_num = f->R.rax;
+	uint64_t ret = -1; // default return value is -1, which indicates an error
+	uint64_t arg[6] = {f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8, f->R.r9}; // syscall arguments
 
-	/*
-	syscall_handler() gets control, 
-	the system call number is in the rax, 
-	and arguments are passed with the 
-	order %rdi, %rsi, %rdx, %r10, %r8, and %r9.
-	*/
-	uint64_t sys_call_num = f->R.rax;
-	uint64_t ARG0 = f->R.rdi;
-	uint64_t ARG1 = f->R.rsi;
-	uint64_t ARG2 =  f->R.rdx;
-	uint64_t ARG3 =  f->R.r10;
-	uint64_t ARG4 =  f->R.r8;
-	uint64_t ARG5 =  f->R.r9;
-	
-	switch (sys_call_num)
-	{
-		case SYS_WRITE:
-			/*
-				Writes size bytes from buffer to the open file fd. 
-				Returns the number of bytes actually written, 
-				which may be less than size if some bytes could not be written. 
-				Writing past end-of-file would normally extend the file, 
-				but file growth is not implemented by the basic file system. 
-				The expected behavior is to write as many bytes as possible up to end-of-file and return the actual number written, 
-				or 0 if no bytes could be written at all. fd 1 writes to the console. 
-				Your code to write to the console should write all of buffer in one call to putbuf(), 
-				at least as long as size is not bigger than a few hundred bytes 
-				(It is reasonable to break up larger buffers). 
-				Otherwise, lines of text output by different processes may end up interleaved on the console, 
-				onfusing both human readers and our grading scripts.s
-				
-				int
-				write (int fd, const void *buffer, unsigned size) {
-					return syscall3 (SYS_WRITE, fd, buffer, size);
-				}
-
-			*/
-
-			int fd = (int)ARG0;
-			void *buffer = (void *)ARG1;
-			size_t size = (size_t)ARG2;
-
-			f->R.rax = write_sys(fd, buffer, size);
-			return;
-			//break;
-	
+	switch (syscall_num) {
+		case SYS_HALT:
+			ret = sys_halt();
+			break;
 		case SYS_EXIT:
-			/*
-			void exit (int status);
-			Terminates the current user program, returning status to the kernel. 
-			If the process's parent waits for it (see below), 
-			this is the status that will be returned. 
-			Conventionally, a status of 0 indicates success and nonzero values indicate errors.
-			*/
-
-			/*
-			void
-			exit (int status) {
-				syscall1 (SYS_EXIT, status);
-				NOT_REACHED ();
-			}
-
-			exit(0) syscall
-			→ syscall_handler에서 0을 현재 thread에 저장
-			→ thread_exit()
-			→ process_exit()
-			→ "args-none: exit(0)" 출력
-
-			*/
-			int status = (int)ARG0;
-			thread_current()->exit_status = status; //종료 넘버 저장
-			thread_exit();
-			//f->R.rax = thread_current()->status;
-			return;			
-
-
-	default:
-		thread_exit();
-		break;
+			sys_exit(arg[0]);
+			break;
+		case SYS_WAIT:
+			ret = sys_wait(arg[0]);
+			break;
+		case SYS_WRITE:
+			ret = sys_write(arg[0], arg[1], arg[2]);
+			break;
+		default:
+			sys_exit (-1);
+			 break;
 	}
 
-	printf ("system call!\n");
-	//thread_exit ();
+	f->R.rax = ret; // set return value
+
+	// printf ("system call!\n");
+	// thread_exit ();
 }
 
-int write_sys(int fd, void *buffer, size_t size){
+static int
+sys_halt (){
+	printf("!! System Call - Halt\n");
+	power_off();
+	return 0;
+}
 
-	int written_size = 0;
+static void
+sys_exit (uint64_t status){
+	struct thread *curr = thread_current();
+	curr->exit_status = (int) status;
+	thread_exit();
+}
 
-	//fd 1 writes to the console
-	if(fd == 1){
+static int
+sys_wait (tid_t child_tid){
+	return process_wait(child_tid);
+}
 
-		/*
-			Your code to write to the console 
-			should write all of buffer 
-			in one call to putbuf(), 
-			at least as long as size is not bigger 
-			than a few hundred bytes 
-		*/
-
-		if(size < MAX_BUFFER_SIZE){
-			putbuf((char *) buffer, size);
-			written_size = size;
-		}
-		else{
-
-			// TODO: MAX_BUFFER_SIZE 로 나눠서 출력하기
-			char *p = buffer;
-			int rest_size = size;
-			
-			while(rest_size != 0){
-
-				if(rest_size > MAX_BUFFER_SIZE){
-					putbuf((char *)p, MAX_BUFFER_SIZE);
-					p += MAX_BUFFER_SIZE;
-					rest_size -= MAX_BUFFER_SIZE;
-					
-				}
-				else
-					putbuf((char *)p, rest_size);
-
-				
-			}
-
-			written_size = size - rest_size;
-		}
-
+static int
+sys_write (uint64_t fd, uint64_t buffer, uint64_t size){
+	if (fd == 1){
+		putbuf((const char *) buffer, size);
+		return size;
 	}
-	else{
-		// TODO: 파일 출력
-		/*
-		Terminates the current user program, 
-		returning status to the kernel. 
-		If the process's parent waits for it (see below), 
-		this is the status that will be returned. 
-		Conventionally, a status of 0 indicates success and nonzero values indicate errors.
-		*/
-
-
-	}
-
-	return written_size;
+	return -1;
 }

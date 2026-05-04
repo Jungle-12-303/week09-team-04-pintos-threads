@@ -133,6 +133,7 @@ thread_init (void) {
 	init_thread (initial_thread, "main", PRI_DEFAULT);
 	initial_thread->status = THREAD_RUNNING;
 	initial_thread->tid = allocate_tid ();
+	
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -489,6 +490,8 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->status = THREAD_BLOCKED;
 	strlcpy (t->name, name, sizeof t->name);
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
+	list_init (&t->children);
+	t->exit_status = 0;
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
 }
@@ -677,4 +680,20 @@ static bool	ready_has_higher_priority (void) {
 	struct thread *curr = thread_current ();
 	struct thread *ready = list_entry (list_front (&ready_list), struct thread, elem);
 	return curr->priority < ready->priority;
+}
+
+struct child_status *create_child_status (struct thread *parent) {
+	struct child_status *child = palloc_get_page (PAL_ZERO);
+	if (!child) {
+		return NULL;
+	}
+	child->tid = TID_ERROR;
+	child->exit_status = 0;
+	child->waited = false;
+	child->exited = false;
+	sema_init (&child->wait_sema, 0);
+
+	list_push_back (&parent->children, &child->elem);
+
+	return child;
 }
