@@ -1,0 +1,2 @@
+*.c filter=jungle-local
+*.h filter=jungle-local
