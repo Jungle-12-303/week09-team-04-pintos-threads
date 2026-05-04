@@ -9,14 +9,32 @@
 #include "intrinsic.h"
 #include "threads/init.h"
 #include "userprog/process.h"
+#include "threads/vaddr.h"
+#include "threads/mmu.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 
-static int sys_halt (void);
+static void sys_halt (void);
 static void sys_exit (uint64_t status);
+static tid_t sys_fork (const char *thread_name);
+static int sys_exec (const char *cmd_line);
 static int sys_wait (tid_t child_tid);
+static bool sys_create (const char *file, unsigned initial_size);
+static bool sys_remove (const char *file);
+static int sys_open (const char *file);
+static int sys_filesize (int fd);
+static int sys_read (uint64_t fd, uint64_t buffer, uint64_t size);
 static int sys_write (uint64_t fd, uint64_t buffer, uint64_t size);
+static void sys_seek (int fd, unsigned position);
+static unsigned sys_tell (int fd);
+static void sys_close (int fd);
+
+
+/*user buffer test*/
+static bool is_valid_user_buffer (const void *addr);
+static void user_buffer_test_length (const void *buffer, unsigned size);
+static void user_buffer_test_string (const void *buffer);
 
 /* System call.
  *
@@ -54,17 +72,61 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 	switch (syscall_num) {
 		case SYS_HALT:
-			ret = sys_halt();
+			sys_halt();
 			break;
+
 		case SYS_EXIT:
-			sys_exit(arg[0]);
+			sys_exit(arg[0]); // arg[0] is the exit status
 			break;
+
+		case SYS_FORK:
+			ret = sys_fork((const char *) arg[0]);
+			break;
+
+		case SYS_EXEC:
+			ret = sys_exec((const char *) arg[0]);
+			break;
+
 		case SYS_WAIT:
-			ret = sys_wait(arg[0]);
+			ret = sys_wait((tid_t) arg[0]); // arg[0] is the child_tid
 			break;
+		
+		case SYS_CREATE:
+			ret = sys_create((const char *) arg[0], (unsigned) arg[1]);
+			break;
+
+		case SYS_REMOVE:
+			ret = sys_remove((const char *) arg[0]);
+			break;
+
+		case SYS_OPEN:
+			ret = sys_open((const char *) arg[0]);
+			break;
+
+		case SYS_FILESIZE:
+			ret = sys_filesize((int) arg[0]);
+			break;
+
+		case SYS_READ:
+			ret = sys_read(arg[0], arg[1], arg[2]);
+			break;
+
 		case SYS_WRITE:
-			ret = sys_write(arg[0], arg[1], arg[2]);
+			ret = sys_write(arg[0], arg[1], arg[2]); // arg[0] is fd, arg[1] is buffer, arg[2] is size
 			break;
+
+		case SYS_SEEK:
+			sys_seek((int) arg[0], (unsigned) arg[1]);
+			break;
+
+		case SYS_TELL:
+			ret = sys_tell((int) arg[0]);
+			break;
+
+		case SYS_CLOSE:
+			sys_close((int) arg[0]);
+			break;
+
 		default:
 			sys_exit (-1);
 			 break;
@@ -76,11 +138,10 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	// thread_exit ();
 }
 
-static int
+static void
 sys_halt (){
 	printf("!! System Call - Halt\n");
 	power_off();
-	return 0;
 }
 
 static void
@@ -90,16 +151,141 @@ sys_exit (uint64_t status){
 	thread_exit();
 }
 
+static tid_t 
+sys_fork (const char *thread_name){
+	// not implemented
+	(void) thread_name;
+	return -1;
+}
+
+static int 
+sys_exec (const char *cmd_line){
+	//not implemented
+	user_buffer_test_string(cmd_line);
+	return -1;
+}
+
 static int
 sys_wait (tid_t child_tid){
 	return process_wait(child_tid);
 }
 
+static bool 
+sys_create (const char *file, unsigned initial_size){
+	//not implemented
+	user_buffer_test_string(file);
+	(void) initial_size;
+	return false;
+}
+
+static bool 
+sys_remove (const char *file){
+	//not implemented
+	user_buffer_test_string(file);
+	return false;
+}
+
+static int 
+sys_open (const char *file){
+	//not implemented
+	user_buffer_test_string(file);
+	return -1;
+}
+
+static int 
+sys_filesize (int fd){
+	//not implemented
+	(void) fd;
+	return -1;
+}
+
+static int 
+sys_read (uint64_t fd, uint64_t buffer, uint64_t size){
+	//not implemented
+	(void) fd;
+	(void) buffer;
+	(void) size;
+	return -1;
+}
+
 static int
 sys_write (uint64_t fd, uint64_t buffer, uint64_t size){
-	if (fd == 1){
+	//buffer validation
+	user_buffer_test_length((const void *) buffer, (unsigned) size);
+	
+	if (fd == 1) { // write to console
 		putbuf((const char *) buffer, size);
 		return size;
 	}
+	else if (fd < 3){
+		return -1;
+	} 
+	else {
+		// not implemented for fd >= 3
+	}
+	
 	return -1;
+}
+
+static void sys_seek (int fd, unsigned position) {
+	// not implemented
+	(void) fd;
+	(void) position;
+}
+
+static unsigned sys_tell (int fd) {
+	// not implemented
+	(void) fd;
+	return 0;
+}
+static void sys_close (int fd) {
+	// not implemented
+	(void) fd;
+}
+
+
+/* user buffer validation */
+static bool
+is_valid_user_buffer (const void *addr) {
+	if (addr == NULL || !is_user_vaddr(addr) || pml4_get_page(thread_current()->pml4, addr) == NULL) {
+		return false;
+	}
+	return true;
+}
+
+static void
+user_buffer_test_length (const void *buffer, unsigned size) {
+	if (size == 0) {
+		return;
+	}
+
+	if (buffer == NULL || !is_valid_user_buffer(buffer) || !is_valid_user_buffer((const void *) ((uint64_t) buffer + size - 1))) {
+		sys_exit(-1);
+	}
+
+	for (uint64_t start = (uint64_t) pg_round_down((uint64_t) buffer); start < (uint64_t) buffer + size; start += PGSIZE) {
+		if (!is_valid_user_buffer((const void *) start)) {
+			sys_exit(-1);
+		}
+	}
+}
+
+static void 
+user_buffer_test_string (const void *buffer) {
+	if (buffer == NULL || !is_valid_user_buffer(buffer)) {
+		sys_exit(-1);
+	}
+
+	for (uint64_t i = 0; i < PGSIZE ; i++) {
+		if (!is_valid_user_buffer((const void *) ((uint64_t) buffer + i))) {
+			sys_exit(-1);
+		}
+
+		const char *ptr = (const char *) buffer + i;
+		if (*ptr == '\0') {
+			return;
+		}
+	}
+
+	sys_exit(-1);
 }
