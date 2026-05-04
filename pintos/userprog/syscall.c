@@ -7,9 +7,16 @@
 #include "userprog/gdt.h"
 #include "threads/flags.h"
 #include "intrinsic.h"
+#include "threads/init.h"
+#include "userprog/process.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
+
+static int sys_halt (void);
+static void sys_exit (uint64_t status);
+static int sys_wait (tid_t child_tid);
+static int sys_write (uint64_t fd, uint64_t buffer, uint64_t size);
 
 /* System call.
  *
@@ -41,6 +48,58 @@ syscall_init (void) {
 void
 syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
-	printf ("system call!\n");
-	thread_exit ();
+	uint64_t syscall_num = f->R.rax;
+	uint64_t ret = -1; // default return value is -1, which indicates an error
+	uint64_t arg[6] = {f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8, f->R.r9}; // syscall arguments
+
+	switch (syscall_num) {
+		case SYS_HALT:
+			ret = sys_halt();
+			break;
+		case SYS_EXIT:
+			sys_exit(arg[0]);
+			break;
+		case SYS_WAIT:
+			ret = sys_wait(arg[0]);
+			break;
+		case SYS_WRITE:
+			ret = sys_write(arg[0], arg[1], arg[2]);
+			break;
+		default:
+			sys_exit (-1);
+			 break;
+	}
+
+	f->R.rax = ret; // set return value
+
+	// printf ("system call!\n");
+	// thread_exit ();
+}
+
+static int
+sys_halt (){
+	printf("!! System Call - Halt\n");
+	power_off();
+	return 0;
+}
+
+static void
+sys_exit (uint64_t status){
+	struct thread *curr = thread_current();
+	curr->exit_status = (int) status;
+	thread_exit();
+}
+
+static int
+sys_wait (tid_t child_tid){
+	return process_wait(child_tid);
+}
+
+static int
+sys_write (uint64_t fd, uint64_t buffer, uint64_t size){
+	if (fd == 1){
+		putbuf((const char *) buffer, size);
+		return size;
+	}
+	return -1;
 }

@@ -52,23 +52,49 @@ process_create_initd (const char *file_name) {
 		return TID_ERROR;
 	strlcpy (fn_copy, file_name, PGSIZE);
 
-	/* Create a new thread to execute FILE_NAME. */
-	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
-	if (tid == TID_ERROR)
+	/* Pass child info to child. */
+	struct exec_info *info = palloc_get_page (PAL_ZERO);
+	if (info == NULL) {
 		palloc_free_page (fn_copy);
+		return TID_ERROR;
+	}
+	info->file_name = fn_copy;
+	info->status = create_child_status (thread_current ());
+	if (info->status == NULL) {
+		palloc_free_page (info);
+		palloc_free_page (fn_copy);
+		return TID_ERROR;
+	}
+	struct child_status *status = info->status;
+
+	/* Create a new thread to execute FILE_NAME. */
+	tid = thread_create (file_name, PRI_DEFAULT, initd, info);
+	if (tid == TID_ERROR) {
+		list_remove (&status->elem);
+		palloc_free_page (status);
+		palloc_free_page (info);
+		palloc_free_page (fn_copy);
+	} else {
+		status->tid = tid;
+	}
 	return tid;
 }
 
 /* A thread function that launches first user process. */
 static void
 initd (void *f_name) {
+	struct exec_info *info = f_name;
+	char *file_name = info->file_name;
+	thread_current ()->my_status = info->status;
+	palloc_free_page (info);
+
 #ifdef VM
 	supplemental_page_table_init (&thread_current ()->spt);
 #endif
 
 	process_init ();
 
-	if (process_exec (f_name) < 0)
+	if (process_exec (file_name) < 0)
 		PANIC("Fail to launch initd\n");
 	NOT_REACHED ();
 }
@@ -206,6 +232,31 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+	
+	 struct thread *current = thread_current ();
+	 struct list_elem *e;
+
+	 for (e = list_begin (&current->children); e != list_end (&current->children);
+			e = list_next (e)) {
+		struct child_status *child = list_entry (e, struct child_status, elem);
+		
+		if (child->tid == child_tid) {
+			if (child->waited) {
+				return -1;
+			}
+
+			child->waited = true;
+			
+			if (!child->exited) {
+				sema_down (&child->wait_sema);
+			}
+
+			int exit_status = child->exit_status;
+			list_remove (&child->elem);
+			palloc_free_page (child);
+			return exit_status;
+		}
+	}
 	return -1;
 }
 
@@ -217,7 +268,35 @@ process_exit (void) {
 	 * TODO: Implement process termination message (see
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
+	
+	 // notice to parent process
+	if (curr->my_status != NULL) {
+		if (curr->my_status->is_orphan) {
+			palloc_free_page (curr->my_status);
+			curr->my_status = NULL;
+		} 
+		
+		else {
+			curr->my_status->exit_status = curr->exit_status;
+			curr->my_status->exited = true;
+			sema_up (&curr->my_status->wait_sema);
+		}
+		
+	}
 
+	// clean up child processes
+	while (!list_empty (&curr->children)) {
+		struct list_elem *e = list_pop_front (&curr->children);
+		struct child_status *child = list_entry (e, struct child_status, elem);
+		
+		if (child->exited) {
+			palloc_free_page (child);
+		} else {
+			child->is_orphan = true;
+		}
+	}
+
+	printf ("%s: exit(%d)\n", curr->name, curr->exit_status);
 	process_cleanup ();
 }
 
@@ -345,8 +424,12 @@ load (const char *file_name, struct intr_frame *if_) {
 		goto done;
 
 	parsed_file_name = strtok_r (file_name, " ", &save_ptr);
+	if (parsed_file_name == NULL)
+		goto done;
 	file_name = parsed_file_name;
 	
+	strlcpy (t->name, parsed_file_name,sizeof t->name);
+
 	/* Count arguments & put in argv */
 	argv[0] = parsed_file_name;
 	argc = 1;

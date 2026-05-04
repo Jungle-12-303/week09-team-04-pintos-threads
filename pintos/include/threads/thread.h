@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/interrupt.h"
+#include "threads/synch.h"
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -122,6 +123,11 @@ struct thread {
 	/* timer_sleep()으로 잠든 스레드를 sleeping_list에 연결하기 위한 리스트 요소. */
 	struct list_elem elem_sleep;              /* List element. */
 
+	/* thread parent-child relationship */
+	struct list children;
+	struct child_status *my_status;
+	int exit_status;
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
@@ -134,6 +140,17 @@ struct thread {
 	/* Owned by thread.c. */
 	struct intr_frame tf;               /* Information for switching */
 	unsigned magic;                     /* Detects stack overflow. */
+};
+
+/* child status structure for tracking child thread information */
+struct child_status {
+    tid_t tid;
+    int exit_status;
+    bool waited;
+    bool exited;
+	bool is_orphan;
+    struct semaphore wait_sema;
+    struct list_elem elem;
 };
 
 /* If false (default), use round-robin scheduler.
@@ -178,5 +195,8 @@ int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
 void do_iret (struct intr_frame *tf);
+
+/* parent-child relationship */
+struct child_status *create_child_status (struct thread *parent);
 
 #endif /* threads/thread.h */
