@@ -18,6 +18,10 @@
 #include "threads/mmu.h"
 #include "threads/vaddr.h"
 #include "intrinsic.h"
+
+// FIXME: 나중에 지우기 
+#include "threads/synch.h"
+
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -208,13 +212,15 @@ process_wait (tid_t child_tid UNUSED) {
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
 
+	//FIXME: 루프 
+
 	//  while(true){
 	// 	if(child_tid를 순회??)
 	// 		break;
 	//  }
-	int i = 900000000;
+	int i = 50000000000;
 	while(i--){
-
+		//barrier();
 	}
 
 	return -1;
@@ -225,9 +231,17 @@ void
 process_exit (void) {
 	struct thread *curr = thread_current ();
 	/* TODO: Your code goes here.
-	 * TODO: Implement process termination message (see
-	 * TODO: project2/process_termination.html).
+	 * TODO: Implement process termination message 
+	 (see project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
+
+	/*args-none: exit(0)
+	Implement process termination message 
+	 (see project2/process_termination.html).
+	*/
+	printf("%s: exit(%d)\n", 
+		thread_current()->name, 
+		thread_current()->exit_status);
 
 	process_cleanup ();
 }
@@ -469,12 +483,12 @@ load (const char *file_name, struct intr_frame *if_) {
 		sp -= (strlen(argv[i])+1);
 
 		//스택에 메모리 복사
-		memcpy(sp, argv[i], strlen(argv[i]));
-		printf("!! 토큰 %s \n", sp);
+		memcpy(sp, argv[i], strlen(argv[i])+1);
+		//printf("!! 토큰 %s \n", sp);
 
 		//argv에 도로 argument의 주소 넣어주기
 		argv[i] = sp;
-		printf("!! argument의 주소 %lld \n", argv[i]);
+		//printf("!! argument의 주소 %lld \n", argv[i]);
 		
 	}
 
@@ -498,16 +512,17 @@ load (const char *file_name, struct intr_frame *if_) {
 		memcpy(sp, &argv[i], sizeof(argv[i]));
 	}
 
-	//레지스터
-	if_->R.rsi = (uint64_t)sp;
-	if_->R.rdi = argc;
+	//argv[0] 유저 스택 주소 저장
+	if_->R.rsi = (uint64_t) sp;
+
 
 	//4. fake return address 
 	sp -= ROUND_UP(sizeof(uint64_t), PADDING_SIZE);
 	memset(sp, 0, sizeof(uint64_t));
 	
-	//레지스터
-	if_->rsp=sp;
+	//레지스터	
+	if_->R.rdi = argc;
+	if_->rsp=(uintptr_t)sp;
 
 	//hex_dump((uintptr_t)sp, sp, USER_STACK - (uintptr_t)sp, true);
 

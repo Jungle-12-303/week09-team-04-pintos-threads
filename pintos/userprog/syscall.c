@@ -86,8 +86,8 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			size_t size = (size_t)ARG2;
 
 			f->R.rax = write_sys(fd, buffer, size);
-
-			break;
+			return;
+			//break;
 	
 		case SYS_EXIT:
 			/*
@@ -97,19 +97,35 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			this is the status that will be returned. 
 			Conventionally, a status of 0 indicates success and nonzero values indicate errors.
 			*/
-			thread_exit();
-			int status = thread_current()->status;
 
-			f->R.rax = status;
-			break;
+			/*
+			void
+			exit (int status) {
+				syscall1 (SYS_EXIT, status);
+				NOT_REACHED ();
+			}
+
+			exit(0) syscall
+			→ syscall_handler에서 0을 현재 thread에 저장
+			→ thread_exit()
+			→ process_exit()
+			→ "args-none: exit(0)" 출력
+
+			*/
+			int status = (int)ARG0;
+			thread_current()->exit_status = status; //종료 넘버 저장
+			thread_exit();
+			//f->R.rax = thread_current()->status;
+			return;			
 
 
 	default:
+		thread_exit();
 		break;
 	}
 
 	printf ("system call!\n");
-	thread_exit ();
+	//thread_exit ();
 }
 
 int write_sys(int fd, void *buffer, size_t size){
