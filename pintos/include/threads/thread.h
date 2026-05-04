@@ -109,8 +109,6 @@ struct thread {
 	enum thread_status status;          /* Thread state. */
 	                                    /* 현재 스레드 상태. */
 
-	int exit_status; /*종료 메시지*/
-
 	char name[16];                      /* Name (for debugging purposes). */
 	                                    /* 디버깅용 스레드 이름. */
 
