@@ -22,7 +22,8 @@
 #include "vm/vm.h"
 #endif
 
-#define STRING_END '\0'
+#define MAX_TOKEN 32
+#define PADDING_SIZE 8
 
 static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
@@ -211,7 +212,8 @@ process_wait (tid_t child_tid UNUSED) {
 	// 	if(child_tid를 순회??)
 	// 		break;
 	//  }
-	while(true){
+	int i = 900000000;
+	while(i--){
 
 	}
 
@@ -346,21 +348,39 @@ load (const char *file_name, struct intr_frame *if_) {
 		goto done;
 	process_activate (thread_current ());
 
-	{
-		//!! 파일명 검색 전 파일명만 파싱
-		char *save_ptr;
-		char temp_name[strlen(file_name)+1];
-		strlcpy(temp_name , file_name, strlen(file_name)+1);
-		char *program_name  = strtok_r(temp_name , " ", &save_ptr);
+	if(file_name == NULL)
+		goto done;
 
-		/* Open executable file. */
-		file = filesys_open (program_name);
-		if (file == NULL) {
-			printf ("load: %s: open failed\n", file_name);
-			goto done;
-		}
+	//!! 파일명은 PGSIZE보다 작아야 한다...근데 굳이 필요할까?? 1차 방어막 정도..
+	if(strlen(file_name)+1 > PGSIZE){
+		printf ("load: %s: file_name exceed 128byte\n", file_name);
+		return false;
 	}
 
+	//원본 훼손 방지로 file_name 복사
+	char temp_name[129];
+	strlcpy(temp_name , file_name, strlen(file_name)+1);
+
+	
+	//토큰 만들기
+	int argc = 0;
+	char* argv[MAX_TOKEN];
+	char *save_ptr;
+
+	for(char *t = strtok_r(temp_name, " ", &save_ptr); 
+		t != NULL; t=strtok_r(NULL, " ", &save_ptr)){
+			argv[argc++] = t;
+			//printf("!! %s \n");
+		}	
+		
+
+	/* Open executable file. */
+	//printf("!! 파일명 %s \n", argv[0]);
+	file = filesys_open (argv[0]);
+	if (file == NULL) {
+		printf ("load: %s: open failed\n", file_name);
+		goto done;
+	}
 
 	/* Read and verify executable header. */
 	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -441,45 +461,55 @@ load (const char *file_name, struct intr_frame *if_) {
 	 //!! * Stores the executable's entry point into *RIP
 	 //!! * its initial stack pointer into *RSP
 	 //!!
-	{
-		//1. 파싱
-		//if(strlen(file_name) < )
-		int argc=0; 
-		char *argv[strlen(file_name)];
 
-		//파일명 임시 복사
-		char temp_name[strlen(file_name)+1];
-		strlcpy(temp_name, file_name, strlen(file_name)+1);
+	//1. 파일명 토큰으로 파싱해서 스택에 저장
+	char *sp = (char *)if_->rsp; 
+	for(int i = argc-1; i != -1; --i){
+		//스택 포인터 이동
+		sp -= (strlen(argv[i])+1);
 
-		//argument 토큰 만들기
-		char *token, *save_ptr;
-		for (token = strtok_r (temp_name, " ", &save_ptr); 
-			token != NULL; token = strtok_r (NULL, " ", &save_ptr)){
-				// token[strlen(token)] += STRING_END;
-				printf ("'%s'\n", token);
+		//스택에 메모리 복사
+		memcpy(sp, argv[i], strlen(argv[i]));
+		printf("!! 토큰 %s \n", sp);
 
-				*argv[strlen(token)+1];
-				memcpy(argv[argc], token, strlen(token)+1);
-				++argc;
-			}
-		
-		//2. 스택에 넣기
-		uint64_t *addr = if_->rsp; //시작 지점
-		for(int tokens_nums = argc; tokens_nums > -1; --tokens_nums){
-			addr -= sizeof(argv[tokens_nums]);
-			memcpy(addr, &argv[tokens_nums], sizeof(argv[tokens_nums]));
-			//address
-		}
-
-		//3. 레지스터
-		if_->R.rdi = argc;
-		if_->R.rsi = USER_STACK-1;
+		//argv에 도로 argument의 주소 넣어주기
+		argv[i] = sp;
+		printf("!! argument의 주소 %lld \n", argv[i]);
 		
 	}
-	
 
-	//(uintptr_t ofs, const void *buf_, size_t size, bool ascii)
-	//hex_dump(addr, , , False);
+	//2. 정렬
+
+	// 2-1. 패딩 공간 싹다 0으로 초기화
+	// uintptr_t new_sp = ROUND_DOWN( (uintptr_t)sp, PADDING_SIZE);
+	// size_t size_of_padding = (char *)sp - (char *)new_sp;
+	// sp = (char *) new_sp;
+	// memset(sp, 0, size_of_padding);
+
+	// 2-2. sp 패딩에 맞춰서 이동
+	sp = (char *) ROUND_DOWN((uintptr_t)sp, PADDING_SIZE);
+
+	//3. argument 주소값 넣기
+	sp -= ROUND_UP(sizeof(uint64_t), PADDING_SIZE);
+	memset(sp, 0, sizeof(uint64_t));
+
+	for(int i = argc-1; i != -1; --i){
+		sp -= ROUND_UP(sizeof(argv[i]), PADDING_SIZE);
+		memcpy(sp, &argv[i], sizeof(argv[i]));
+	}
+
+	//레지스터
+	if_->R.rsi = (uint64_t)sp;
+	if_->R.rdi = argc;
+
+	//4. fake return address 
+	sp -= ROUND_UP(sizeof(uint64_t), PADDING_SIZE);
+	memset(sp, 0, sizeof(uint64_t));
+	
+	//레지스터
+	if_->rsp=sp;
+
+	//hex_dump((uintptr_t)sp, sp, USER_STACK - (uintptr_t)sp, true);
 
 	success = true;
 
