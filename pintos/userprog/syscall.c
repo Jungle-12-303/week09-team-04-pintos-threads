@@ -55,6 +55,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	case SYS_EXIT:
 		printf("!! Exit!\n");
 		break;
+	case SYS_HALT:
+		sys_halt();
+		break;
 	default:
 		printf("!! No Matched System Call!\n");
 	}
@@ -69,4 +72,10 @@ sys_write (uint64_t fd, uint64_t buffer, uint64_t size){
 		putbuf(buffer, size);
 		return size;
 	}
+}
+
+int
+sys_halt (){
+	printf("!! System Call - Halt\n");
+	power_off();
 }
