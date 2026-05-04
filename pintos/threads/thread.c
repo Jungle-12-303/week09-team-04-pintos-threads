@@ -134,7 +134,6 @@ thread_init (void) {
 	initial_thread->status = THREAD_RUNNING;
 	initial_thread->tid = allocate_tid ();
 
-	//child sema init
 	sema_init(&initial_thread->child_sema, 0);
 }
 
@@ -221,8 +220,8 @@ thread_create (const char *name, int priority,
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
 	t->tf.rip = (uintptr_t) kernel_thread;
-	t->tf.R.rdi = (uint64_t) function; //program(file) name
-	t->tf.R.rsi = (uint64_t) aux; //argc
+	t->tf.R.rdi = (uint64_t) function;
+	t->tf.R.rsi = (uint64_t) aux;
 	t->tf.ds = SEL_KDSEG;
 	t->tf.es = SEL_KDSEG;
 	t->tf.ss = SEL_KDSEG;

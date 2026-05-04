@@ -40,7 +40,6 @@ syscall_init (void) {
 /* The main system call interface */
 void
 syscall_handler (struct intr_frame *f UNUSED) {
-	// TODO: Your implementation goes here.
 	uint64_t syscall_nbr = f->R.rax;
 	uint64_t arg0 = f->R.rdi;
 	uint64_t arg1 = f->R.rsi;
@@ -57,6 +56,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		break;
 	case SYS_HALT:
 		sys_halt();
+		break;
+	case SYS_CREATE:
+		sys_create();
 		break;
 	default:
 		printf("!! No Matched System Call!\n");
@@ -78,4 +80,9 @@ int
 sys_halt (){
 	printf("!! System Call - Halt\n");
 	power_off();
+	return 1;
+}
+
+int sys_create(){
+
 }

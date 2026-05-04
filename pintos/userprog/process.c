@@ -220,7 +220,6 @@ process_exit (void) {
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
-	//printf ("%s: exit(%d)\n", ...);
 	printf ("%s: exit code\n", curr->name);
 	process_cleanup ();
 
@@ -331,7 +330,6 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
  * Returns true if successful, false otherwise. */
 static bool
 load (const char *file_name, struct intr_frame *if_) {
-	//(!!) file name parsing
 	char* arg;
 	char* save_ptr;
 
@@ -354,7 +352,6 @@ load (const char *file_name, struct intr_frame *if_) {
 	process_activate (thread_current ());
 
 	/* Open executable file. */
-	// file = filesys_open (file_name);
 	file = filesys_open (arg);
 	if (file == NULL) {
 		printf ("load: %s: open failed\n", arg);

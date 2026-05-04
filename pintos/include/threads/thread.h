@@ -123,7 +123,6 @@ struct thread {
 	/* timer_sleep()으로 잠든 스레드를 sleeping_list에 연결하기 위한 리스트 요소. */
 	struct list_elem elem_sleep;              /* List element. */
 
-	//sema for childern
 	struct semaphore child_sema;
 
 #ifdef USERPROG
