@@ -128,8 +128,8 @@
       "last_action": "run"
     },
     "tests/userprog/close-normal": {
-      "count": 1,
-      "last_used": 1777901459.971,
+      "count": 10,
+      "last_used": 1777969569.3,
       "last_action": "run"
     },
     "tests/userprog/open-normal": {
@@ -165,6 +165,46 @@
     "tests/userprog/open-twice": {
       "count": 4,
       "last_used": 1777966722.547,
+      "last_action": "run"
+    },
+    "tests/userprog/close-twice": {
+      "count": 1,
+      "last_used": 1777969600.246,
+      "last_action": "run"
+    },
+    "tests/userprog/close-bad-fd": {
+      "count": 1,
+      "last_used": 1777969600.246,
+      "last_action": "run"
+    },
+    "tests/userprog/write-normal": {
+      "count": 2,
+      "last_used": 1777969641.077,
+      "last_action": "run"
+    },
+    "tests/userprog/write-bad-ptr": {
+      "count": 5,
+      "last_used": 1777970371.655,
+      "last_action": "run"
+    },
+    "tests/userprog/write-boundary": {
+      "count": 1,
+      "last_used": 1777969641.077,
+      "last_action": "run"
+    },
+    "tests/userprog/write-zero": {
+      "count": 1,
+      "last_used": 1777969641.077,
+      "last_action": "run"
+    },
+    "tests/userprog/write-stdin": {
+      "count": 4,
+      "last_used": 1777970446.411,
+      "last_action": "run"
+    },
+    "tests/userprog/write-bad-fd": {
+      "count": 5,
+      "last_used": 1777970446.411,
       "last_action": "run"
     }
   }

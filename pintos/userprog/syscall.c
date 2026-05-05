@@ -10,18 +10,21 @@
 #include "threads/init.h"
 #include "userprog/process.h"
 #include "filesys/filesys.h"
+#include "filesys/file.h"
 #include "string.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 
-static void vaild_argument (const char *file);
-static int sys_halt (void);
+static void valid_argument (const char *file);
+static void valid_fd (const uint64_t fd);
+static void sys_halt (void);
 static void sys_exit (uint64_t status);
 static int sys_wait (tid_t child_tid);
-static int sys_write (uint64_t fd, uint64_t buffer, uint64_t size);
+static int sys_write (int fd, const void *buffer, unsigned size);
 static int sys_create (const char *file, unsigned initial_size);
 static int sys_open (const char *file);
+static int sys_close (int fd);
 
 struct lock file_lock;
 
@@ -64,7 +67,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 	switch (syscall_num) {
 	case SYS_HALT:
-		ret = sys_halt ();
+		sys_halt ();
 		break;
 	case SYS_EXIT:
 		sys_exit (arg[0]);
@@ -81,6 +84,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	case SYS_OPEN:
 		ret = sys_open (arg[0]);
 		break;
+	case SYS_CLOSE:
+		ret = sys_close (arg[0]);
+		break;
 	default:
 		sys_exit (-1);
 		break;
@@ -93,7 +99,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 }
 
 static void
-vaild_arugment (const char *file) {
+valid_argument (const char *file) {
 	struct thread *curr = thread_current ();
 	if (file == NULL || !is_user_vaddr (file) ||
 	    pml4_get_page (curr->pml4, file) == NULL) {
@@ -102,10 +108,18 @@ vaild_arugment (const char *file) {
 	}
 }
 
-static int
+static void
+valid_fd (const uint64_t fd) {
+	struct thread *curr = thread_current ();
+	if (fd < 2 || fd >= FD_SIZE) {
+		curr->exit_status = -1;
+		thread_exit ();
+	}
+}
+
+static void
 sys_halt () {
 	power_off ();
-	return 0;
 }
 
 static void
@@ -121,17 +135,26 @@ sys_wait (tid_t child_tid) {
 }
 
 static int
-sys_write (uint64_t fd, uint64_t buffer, uint64_t size) {
+sys_write (int fd, const void *buffer, unsigned size) {
 	if (fd == 1) {
 		putbuf ((const char *) buffer, size);
 		return size;
+	} else {
+		valid_fd (fd);
+		valid_argument (buffer);
+
+		struct thread *curr = thread_current ();
+		lock_acquire (&file_lock);
+		off_t temp = file_write (curr->fd[fd], buffer, size);
+		lock_release (&file_lock);
+
+		return temp;
 	}
-	return -1;
 }
 
 static int
 sys_create (const char *file, unsigned initial_size) {
-	vaild_arugment (file);
+	valid_argument (file);
 
 	if (strlen (file) > 14) {
 		return 0;
@@ -142,7 +165,7 @@ sys_create (const char *file, unsigned initial_size) {
 
 static int
 sys_open (const char *file) {
-	vaild_arugment (file);
+	valid_argument (file);
 
 	if (strlen (file) > 14) {
 		return -1;
@@ -150,10 +173,11 @@ sys_open (const char *file) {
 
 	lock_acquire (&file_lock);
 	struct file *temp = filesys_open (file);
+	lock_release (&file_lock);
+
 	if (temp == NULL) {
 		return -1;
 	}
-	lock_release (&file_lock);
 
 	struct thread *curr = thread_current ();
 	for (int i = 3; i < FD_SIZE; i++) {
@@ -163,4 +187,20 @@ sys_open (const char *file) {
 		}
 	}
 	return -1;
+}
+
+static int
+sys_close (int fd) {
+	valid_fd (fd);
+
+	struct thread *curr = thread_current ();
+	if (curr->fd[fd] == 0) {
+		return -1;
+	}
+	lock_acquire (&file_lock);
+	file_close (curr->fd[fd]);
+	lock_release (&file_lock);
+	curr->fd[fd] = 0;
+
+	return 0;
 }
