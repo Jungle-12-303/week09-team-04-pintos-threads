@@ -25,6 +25,7 @@ static bool sys_create(const char *file, unsigned initial_size);
 static bool is_valid_user_ptr(const void*uaddr);
 static bool is_valid_user_string(const char *str);
 static int sys_open(const char *file);
+static void sys_close(int fd);
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -77,6 +78,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 		case SYS_OPEN:
 			ret = sys_open((const char*)arg[0]);
+			break;
+		case SYS_CLOSE:
+			sys_close((int)arg[0]);
 			break;
 		default:
 			sys_exit (-1);
@@ -170,4 +174,22 @@ sys_open(const char *file){
 	}	
 	file_close(opened_file);
 	return -1;
+}
+
+static void
+sys_close(int fd){
+	struct thread *cur = thread_current();
+
+	if(fd < 2){
+		return;
+	}
+	if(fd >= FD_MAX){
+		return;
+	}
+	if(cur->fd_table[fd] == NULL){
+		return;
+	}
+
+	file_close(cur->fd_table[fd]);
+	cur->fd_table[fd] = NULL;	
 }
