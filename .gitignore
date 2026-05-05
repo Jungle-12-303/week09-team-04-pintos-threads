@@ -34,3 +34,6 @@ core
 
 # Annotation (auto-generated)
 .gitattributes
+
+# VS Code Pintos test history
+pintos/.vscode/pintos-test-history.json
