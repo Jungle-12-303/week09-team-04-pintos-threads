@@ -9,14 +9,18 @@
 #include "intrinsic.h"
 #include "threads/init.h"
 #include "userprog/process.h"
+#include "filesys/filesys.h"
+#include "string.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 
+static void vaild_argument(const char* file);
 static int sys_halt (void);
 static void sys_exit (uint64_t status);
 static int sys_wait (tid_t child_tid);
 static int sys_write (uint64_t fd, uint64_t buffer, uint64_t size);
+static int sys_create (const char *file, unsigned initial_size);
 
 /* System call.
  *
@@ -65,6 +69,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_WRITE:
 			ret = sys_write(arg[0], arg[1], arg[2]);
 			break;
+		case SYS_CREATE:
+			ret = sys_create(arg[0], arg[1]);
+			break;
 		default:
 			sys_exit (-1);
 			 break;
@@ -76,9 +83,18 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	// thread_exit ();
 }
 
+static void
+vaild_arugment(const char* file, unsigned initial_size){
+	struct thread *curr = thread_current();
+	if (file == NULL || !is_user_vaddr (file) || pml4_get_page(curr->pml4, file) == NULL){
+		curr->exit_status = -1;
+		thread_exit();
+	}
+
+}
+
 static int
 sys_halt (){
-	printf("!! System Call - Halt\n");
 	power_off();
 	return 0;
 }
@@ -102,4 +118,15 @@ sys_write (uint64_t fd, uint64_t buffer, uint64_t size){
 		return size;
 	}
 	return -1;
+}
+
+static int
+sys_create (const char *file, unsigned initial_size){
+	vaild_arugment(file, initial_size);
+
+	if (strlen(file) > 14){
+		return 0;
+	}
+
+	return filesys_create(file, initial_size);
 }
