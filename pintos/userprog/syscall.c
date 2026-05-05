@@ -12,6 +12,7 @@
 #include "filesys/filesys.h"
 #include "threads/vaddr.h"
 #include "threads/mmu.h"
+#include "filesys/file.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -23,6 +24,7 @@ static int sys_write (uint64_t fd, uint64_t buffer, uint64_t size);
 static bool sys_create(const char *file, unsigned initial_size);
 static bool is_valid_user_ptr(const void*uaddr);
 static bool is_valid_user_string(const char *str);
+static int sys_open(const char *file);
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -72,6 +74,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 		case SYS_CREATE:
 			ret = sys_create((const char*)arg[0], (unsigned)arg[1]);
+			break;
+		case SYS_OPEN:
+			ret = sys_open((const char*)arg[0]);
 			break;
 		default:
 			sys_exit (-1);
@@ -142,4 +147,27 @@ sys_create(const char *file, unsigned initial_size){
 	}
 
 	return filesys_create(file, initial_size);
+}
+
+static int 
+sys_open(const char *file){
+	if(!is_valid_user_string(file)){
+		sys_exit(-1);
+	}
+
+	struct file *opened_file = filesys_open(file);
+
+	if(opened_file == NULL){
+		return -1;
+	}
+	struct thread *cur = thread_current();
+
+	for(int i=2; i<FD_MAX; i++){
+		if (cur->fd_table[i] == NULL){
+			cur->fd_table[i] = opened_file;
+			return i;
+		}
+	}	
+	file_close(opened_file);
+	return -1;
 }
