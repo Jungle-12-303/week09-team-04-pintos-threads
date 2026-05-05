@@ -93,43 +93,78 @@
       "last_action": "run"
     },
     "tests/userprog/create-normal": {
-      "count": 11,
-      "last_used": 1777897720.757,
+      "count": 12,
+      "last_used": 1777966339.89,
       "last_action": "run"
     },
     "tests/userprog/create-null": {
-      "count": 5,
-      "last_used": 1777898322.428,
+      "count": 6,
+      "last_used": 1777966339.89,
       "last_action": "run"
     },
     "tests/userprog/create-bad-ptr": {
-      "count": 7,
-      "last_used": 1777944806.768,
+      "count": 8,
+      "last_used": 1777966339.89,
       "last_action": "run"
     },
     "tests/userprog/create-empty": {
-      "count": 1,
-      "last_used": 1777898716.505,
+      "count": 2,
+      "last_used": 1777966339.89,
       "last_action": "run"
     },
     "tests/userprog/create-long": {
-      "count": 2,
-      "last_used": 1777898907.331,
+      "count": 3,
+      "last_used": 1777966339.89,
       "last_action": "run"
     },
     "tests/userprog/create-exists": {
-      "count": 1,
-      "last_used": 1777898933.742,
+      "count": 2,
+      "last_used": 1777966339.89,
       "last_action": "run"
     },
     "tests/userprog/create-bound": {
-      "count": 1,
-      "last_used": 1777898947.872,
+      "count": 2,
+      "last_used": 1777966339.89,
       "last_action": "run"
     },
     "tests/userprog/close-normal": {
       "count": 1,
       "last_used": 1777901459.971,
+      "last_action": "run"
+    },
+    "tests/userprog/open-normal": {
+      "count": 13,
+      "last_used": 1777966339.89,
+      "last_action": "run"
+    },
+    "tests/userprog/open-missing": {
+      "count": 2,
+      "last_used": 1777966339.89,
+      "last_action": "run"
+    },
+    "tests/userprog/open-boundary": {
+      "count": 2,
+      "last_used": 1777966339.89,
+      "last_action": "run"
+    },
+    "tests/userprog/open-empty": {
+      "count": 2,
+      "last_used": 1777966339.89,
+      "last_action": "run"
+    },
+    "tests/userprog/open-null": {
+      "count": 2,
+      "last_used": 1777966339.89,
+      "last_action": "run"
+    },
+    "tests/userprog/open-bad-ptr": {
+      "count": 2,
+      "last_used": 1777966339.89,
+      "last_action": "run"
+    },
+    "tests/userprog/open-twice": {
+      "count": 4,
+      "last_used": 1777966722.547,
       "last_action": "run"
     }
   }
