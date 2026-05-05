@@ -11,6 +11,9 @@
 #include "userprog/process.h"
 #include "threads/vaddr.h"
 #include "threads/mmu.h"
+#include "filesys/filesys.h"
+#include "filesys/file.h"
+#include "devices/input.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -151,6 +154,7 @@ sys_exit (uint64_t status){
 	thread_exit();
 }
 
+
 static tid_t 
 sys_fork (const char *thread_name){
 	// not implemented
@@ -171,40 +175,70 @@ sys_wait (tid_t child_tid){
 }
 
 static bool 
-sys_create (const char *file, unsigned initial_size){
-	//not implemented
+sys_create (const char *file, unsigned initial_size){	
 	user_buffer_test_string(file);
-	(void) initial_size;
-	return false;
+	if (filesys_create(file, initial_size)) {
+		return true;
+	} else {
+		return false;
+	}
 }
 
 static bool 
 sys_remove (const char *file){
-	//not implemented
 	user_buffer_test_string(file);
-	return false;
+	return filesys_remove(file);
 }
 
 static int 
 sys_open (const char *file){
-	//not implemented
 	user_buffer_test_string(file);
+	
+	struct file *opened_file = filesys_open(file);
+	if (opened_file == NULL) {
+		return -1;
+	}
+	
+	for (int fd = FD_MIN; fd < FD_MAX; fd++) {
+		if (thread_current()->fd_file[fd] == NULL) {
+			thread_current()->fd_file[fd] = opened_file;
+			return fd;
+		}
+	}
 	return -1;
 }
 
 static int 
 sys_filesize (int fd){
-	//not implemented
-	(void) fd;
-	return -1;
+	if (fd < FD_MIN || fd >= FD_MAX || thread_current()->fd_file[fd] == NULL) {
+		return -1;
+	}
+
+	return file_length(thread_current()->fd_file[fd]);
 }
 
 static int 
 sys_read (uint64_t fd, uint64_t buffer, uint64_t size){
-	//not implemented
-	(void) fd;
-	(void) buffer;
-	(void) size;
+	user_buffer_test_length((const void *) buffer, (unsigned) size);
+
+	if (fd == 0) { // read from console
+		for (unsigned i = 0; i < size; i++) {
+			((char *) buffer)[i] = input_getc();
+		}
+		return size;
+	}
+
+	if (fd >= FD_MAX || thread_current()->fd_file[fd] == NULL) {
+		return -1;
+	}
+	else { // read from file
+		struct file *file = thread_current()->fd_file[fd];
+		if (file == NULL) {
+			return -1;
+		}
+		return file_read(file, (void *) buffer, size);
+	}
+
 	return -1;
 }
 
@@ -212,35 +246,50 @@ static int
 sys_write (uint64_t fd, uint64_t buffer, uint64_t size){
 	//buffer validation
 	user_buffer_test_length((const void *) buffer, (unsigned) size);
-	
+
 	if (fd == 1) { // write to console
 		putbuf((const char *) buffer, size);
 		return size;
 	}
-	else if (fd < 3){
+	
+	if (fd >= FD_MAX || thread_current()->fd_file[fd] == NULL) {
 		return -1;
-	} 
-	else {
-		// not implemented for fd >= 3
+	}
+	else { // write to file
+		struct file *file = thread_current()->fd_file[fd];
+		if (file == NULL) {
+			return -1;
+		}
+		return file_write(file, (const void *) buffer, size);
 	}
 	
 	return -1;
 }
 
-static void sys_seek (int fd, unsigned position) {
-	// not implemented
-	(void) fd;
-	(void) position;
+static void 
+sys_seek (int fd, unsigned position) {
+	if (fd < FD_MIN || fd >= FD_MAX || thread_current()->fd_file[fd] == NULL){
+		return;
+	}
+	file_seek(thread_current()->fd_file[fd], position);
 }
 
-static unsigned sys_tell (int fd) {
-	// not implemented
-	(void) fd;
-	return 0;
+static unsigned 
+sys_tell (int fd) {
+	if (fd < FD_MIN || fd >= FD_MAX || thread_current()->fd_file[fd] == NULL) {
+		return -1;
+	}
+	return file_tell(thread_current()->fd_file[fd]);
 }
-static void sys_close (int fd) {
-	// not implemented
-	(void) fd;
+
+static void 
+sys_close (int fd) {
+	if (fd < FD_MIN || fd >= FD_MAX || thread_current()->fd_file[fd] == NULL) {
+		return;
+	}
+
+	file_close(thread_current()->fd_file[fd]);
+	thread_current()->fd_file[fd] = NULL;
 }
 
 

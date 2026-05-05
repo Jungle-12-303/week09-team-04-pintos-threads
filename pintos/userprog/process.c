@@ -417,6 +417,12 @@ load (const char *file_name, struct intr_frame *if_) {
 	t->pml4 = pml4_create ();
 	if (t->pml4 == NULL)
 		goto done;
+
+	/* Initialize file descriptors. */
+	for (i = 0; i < FD_MAX; i++) {
+		t->fd_file[i] = NULL;
+	}
+
 	process_activate (thread_current ());
 
 	/* Parse command line arguments. */
