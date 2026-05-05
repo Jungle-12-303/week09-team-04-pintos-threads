@@ -30,7 +30,7 @@ enum thread_status {
 typedef int tid_t;
 #define TID_ERROR ((tid_t) -1)          /* Error value for tid_t. */
                                         /* tid 할당 실패를 나타내는 값. */
-
+struct file;
 /* Thread priorities. */
 /* PintOS 스레드 우선순위 범위. 값이 클수록 우선순위가 높다. */
 #define PRI_MIN 0                       /* Lowest priority. */
@@ -39,7 +39,7 @@ typedef int tid_t;
                                         /* 기본 우선순위. */
 #define PRI_MAX 63                      /* Highest priority. */
                                         /* 가장 높은 우선순위. */
-
+#define FD_MAX 128
 /* A kernel thread or user process.
  *
  * Each thread structure is stored in its own 4 kB page.  The
@@ -128,9 +128,13 @@ struct thread {
 	struct child_status *my_status;
 	int exit_status;
 
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
+
+	struct file *fd_table[FD_MAX];
+	int next_fd;
 #endif
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */
