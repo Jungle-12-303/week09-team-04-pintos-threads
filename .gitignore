@@ -37,3 +37,6 @@ core
 
 # VS Code Pintos test history
 pintos/.vscode/pintos-test-history.json
+
+# Local study notes
+docs/
