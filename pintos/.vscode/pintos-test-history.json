@@ -198,13 +198,43 @@
       "last_action": "run"
     },
     "tests/userprog/write-stdin": {
-      "count": 4,
-      "last_used": 1777970446.411,
+      "count": 5,
+      "last_used": 1777980457.173,
       "last_action": "run"
     },
     "tests/userprog/write-bad-fd": {
-      "count": 5,
-      "last_used": 1777970446.411,
+      "count": 6,
+      "last_used": 1777980457.173,
+      "last_action": "run"
+    },
+    "tests/userprog/read-normal": {
+      "count": 11,
+      "last_used": 1777980747.483,
+      "last_action": "run"
+    },
+    "tests/userprog/read-bad-ptr": {
+      "count": 1,
+      "last_used": 1777980446.444,
+      "last_action": "run"
+    },
+    "tests/userprog/read-boundary": {
+      "count": 1,
+      "last_used": 1777980457.173,
+      "last_action": "run"
+    },
+    "tests/userprog/read-zero": {
+      "count": 1,
+      "last_used": 1777980457.173,
+      "last_action": "run"
+    },
+    "tests/userprog/read-stdout": {
+      "count": 1,
+      "last_used": 1777980457.173,
+      "last_action": "run"
+    },
+    "tests/userprog/read-bad-fd": {
+      "count": 1,
+      "last_used": 1777980457.173,
       "last_action": "run"
     }
   }

@@ -17,7 +17,7 @@ void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 
 static void valid_argument (const char *file);
-static void valid_fd (const uint64_t fd);
+static void valid_fd (const int fd);
 static void sys_halt (void);
 static void sys_exit (uint64_t status);
 static int sys_wait (tid_t child_tid);
@@ -25,6 +25,10 @@ static int sys_write (int fd, const void *buffer, unsigned size);
 static int sys_create (const char *file, unsigned initial_size);
 static int sys_open (const char *file);
 static int sys_close (int fd);
+static int sys_read (int fd, void *buffer, unsigned size);
+static int sys_filesize (int fd);
+static void sys_seek (int fd, unsigned position);
+static int sys_tell (int fd);
 
 struct lock file_lock;
 
@@ -87,6 +91,18 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	case SYS_CLOSE:
 		ret = sys_close (arg[0]);
 		break;
+	case SYS_READ:
+		ret = sys_read (arg[0], arg[1], arg[2]);
+		break;
+	case SYS_FILESIZE:
+		ret = sys_filesize (arg[0]);
+		break;
+	case SYS_SEEK:
+		sys_seek (arg[0], arg[1]);
+		break;
+	case SYS_TELL:
+		ret = sys_tell (arg[0]);
+		break;
 	default:
 		sys_exit (-1);
 		break;
@@ -109,7 +125,7 @@ valid_argument (const char *file) {
 }
 
 static void
-valid_fd (const uint64_t fd) {
+valid_fd (const int fd) {
 	struct thread *curr = thread_current ();
 	if (fd < 2 || fd >= FD_SIZE) {
 		curr->exit_status = -1;
@@ -203,4 +219,77 @@ sys_close (int fd) {
 	curr->fd[fd] = 0;
 
 	return 0;
+}
+
+static int
+sys_read (int fd, void *buffer, unsigned size) {
+	if (fd >= FD_SIZE || fd < 0) {
+		return -1;
+	}
+
+	struct thread *curr = thread_current ();
+
+	valid_argument (buffer);
+	lock_acquire (&file_lock);
+	if (fd == 0) {
+		for (int i = 0; i < size; i++) {
+			char *ptr = (char *) buffer;
+			ptr[i] = input_getc ();
+		}
+		lock_release (&file_lock);
+		return size;
+	} else if (2 < fd) {
+		if (curr->fd[fd] == 0) {
+			lock_release (&file_lock);
+			return -1;
+		}
+
+		off_t temp = file_read (curr->fd[fd], buffer, size);
+		lock_release (&file_lock);
+		return temp;
+
+	} else {
+		lock_release (&file_lock);
+		return -1;
+	}
+}
+
+static int
+sys_filesize (int fd) {
+	valid_fd (fd);
+	struct thread *curr = thread_current ();
+	if (curr->fd[fd] == 0) {
+		return -1;
+	}
+	lock_acquire (&file_lock);
+	off_t temp = file_length (curr->fd[fd]);
+	lock_release (&file_lock);
+
+	return temp;
+}
+
+static void
+sys_seek (int fd, unsigned position) {
+	valid_fd (fd);
+	struct thread *curr = thread_current ();
+	if (curr->fd[fd] == 0) {
+		sys_exit (-1);
+	}
+	lock_acquire (&file_lock);
+	file_seek (curr->fd[fd], position);
+	lock_release (&file_lock);
+}
+
+static int
+sys_tell (int fd) {
+	valid_fd (fd);
+	struct thread *curr = thread_current ();
+	if (curr->fd[fd] == 0) {
+		return -1;
+	}
+	lock_acquire (&file_lock);
+	off_t temp = file_tell (curr->fd[fd]);
+	lock_release (&file_lock);
+
+	return temp;
 }
