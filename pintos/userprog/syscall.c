@@ -19,6 +19,7 @@ static int sys_wait(tid_t child_tid);
 static int sys_write(uint64_t fd, uint64_t buffer, uint64_t size);
 static int sys_create(uint64_t name, uint64_t size);
 static int sys_open(uint64_t name);
+static void sys_close(uint64_t fd);
 
 static bool is_valid_user_ptr(void *uaddr);
 static bool is_valid_string(void *uaddr);
@@ -40,6 +41,8 @@ static bool is_writable_address(void *buffer);
 #define MSR_LSTAR 0xc0000082		/* Long mode SYSCALL target */
 #define MSR_SYSCALL_MASK 0xc0000084 /* Mask for the eflags */
 
+#define FILE_OPEN_FAIL_NO -1
+
 void syscall_init(void)
 {
 	write_msr(MSR_STAR, ((uint64_t)SEL_UCSEG - 0x10) << 48 |
@@ -60,6 +63,8 @@ void syscall_handler(struct intr_frame *f UNUSED)
 	uint64_t ret = -1; // default return value is -1, which indicates an error
 	uint64_t arg[6] = {f->R.rdi, f->R.rsi, f->R.rdx,
 					   f->R.r10, f->R.r8, f->R.r9}; // syscall arguments
+
+	struct thread *t = thread_current();
 
 	switch (syscall_num)
 	{
@@ -85,12 +90,21 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		ret = sys_open(arg[0]);
 		break;
 
+	case SYS_CLOSE:
+		sys_close(arg[0]);
+		break;
+
 	default:
 		sys_exit(-1);
 		break;
 	}
 
 	f->R.rax = ret; // set return value
+
+	if (ret != 0)
+	{
+		thread_current()->exit_status = 0;
+	}
 
 	// printf ("system call!\n");
 	// thread_exit ();
@@ -143,14 +157,46 @@ sys_create(uint64_t buffer, uint64_t size)
 static int
 sys_open(uint64_t name)
 {
+	int ret = -1;
 	if (!is_valid_user_ptr(name))
 	{
 		sys_exit(-1);
 	}
 
-	return filesys_open(name);
+	struct file *f = filesys_open(name);
+	if (f == NULL)
+	{
+		// printf("[sys_open] The file of name[%s] could not find. \n", (char *)name);
+
+		// sys_exit(0);
+		// sys_exit(-1);
+		ret = FILE_OPEN_FAIL_NO;
+		goto done;
+	}
+
+	struct thread *t = thread_current();
+	if (t->fdt == NULL)
+		fdt_init();
+
+	ret = fd_alloc(f);
+	if (fd_alloc(f) < 3)
+	{
+		ret = -1;
+		sys_exit(-1);
+		// return false;
+	}
+
+
+done:
+	return ret;
 }
 
+static void
+sys_close(uint64_t fd)
+{
+	if (fdt_close_fd((int)fd) == true)
+		thread_current()->exit_status = 0;
+}
 /*@todo: 유저 메모리 유효성 체크
 
 is_valid_user_ptr()
@@ -169,8 +215,7 @@ is_writable_address
 써야 하는데 쓸 수 없는 주소
 */
 
-static bool
-is_valid_user_ptr(void *uaddr)
+static bool is_valid_user_ptr(void *uaddr)
 {
 	if (uaddr == NULL ||
 		pml4_get_page(thread_current()->pml4, uaddr) == NULL ||
