@@ -9,6 +9,9 @@
 #include "intrinsic.h"
 #include "threads/init.h"
 #include "userprog/process.h"
+#include "filesys/filesys.h"
+#include "threads/vaddr.h"
+#include "threads/mmu.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -17,7 +20,9 @@ static int sys_halt (void);
 static void sys_exit (uint64_t status);
 static int sys_wait (tid_t child_tid);
 static int sys_write (uint64_t fd, uint64_t buffer, uint64_t size);
-
+static bool sys_create(const char *file, unsigned initial_size);
+static bool is_valid_user_ptr(const void*uaddr);
+static bool is_valid_user_string(const char *str);
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -65,6 +70,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_WRITE:
 			ret = sys_write(arg[0], arg[1], arg[2]);
 			break;
+		case SYS_CREATE:
+			ret = sys_create((const char*)arg[0], (unsigned)arg[1]);
+			break;
 		default:
 			sys_exit (-1);
 			 break;
@@ -74,6 +82,29 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 	// printf ("system call!\n");
 	// thread_exit ();
+}
+	
+static bool
+is_valid_user_ptr(const void *uaddr){
+	if((uaddr == NULL) || !is_user_vaddr(uaddr) || (pml4_get_page(thread_current()->pml4, uaddr) == NULL)){
+		return false;
+	}
+	return true;
+}
+
+static bool is_valid_user_string(const char *str){
+	char *p = str;
+
+	while(true){
+		if (!is_valid_user_ptr(p)){
+			return false;
+		}
+
+		if (*p == '\0'){
+			return true;
+		}
+		p++;
+	}
 }
 
 static int
@@ -102,4 +133,13 @@ sys_write (uint64_t fd, uint64_t buffer, uint64_t size){
 		return size;
 	}
 	return -1;
+}
+
+static bool
+sys_create(const char *file, unsigned initial_size){
+	if (!is_valid_user_string(file)){
+		sys_exit(-1);
+	}
+
+	return filesys_create(file, initial_size);
 }
