@@ -68,38 +68,83 @@
       "last_action": "run"
     },
     "tests/userprog/open-normal": {
-      "count": 1,
-      "last_used": 1777960484.488,
+      "count": 4,
+      "last_used": 1778065934.239,
       "last_action": "run"
     },
     "tests/userprog/open-missing": {
-      "count": 1,
-      "last_used": 1777960511.16,
+      "count": 4,
+      "last_used": 1778065934.239,
       "last_action": "run"
     },
     "tests/userprog/open-boundary": {
-      "count": 1,
-      "last_used": 1777960511.16,
+      "count": 4,
+      "last_used": 1778065934.239,
       "last_action": "run"
     },
     "tests/userprog/open-empty": {
-      "count": 1,
-      "last_used": 1777960511.16,
+      "count": 4,
+      "last_used": 1778065934.239,
       "last_action": "run"
     },
     "tests/userprog/open-null": {
-      "count": 1,
-      "last_used": 1777960511.16,
+      "count": 4,
+      "last_used": 1778065934.239,
       "last_action": "run"
     },
     "tests/userprog/open-bad-ptr": {
-      "count": 1,
-      "last_used": 1777960511.16,
+      "count": 4,
+      "last_used": 1778065934.239,
       "last_action": "run"
     },
     "tests/userprog/open-twice": {
+      "count": 4,
+      "last_used": 1778065934.239,
+      "last_action": "run"
+    },
+    "tests/userprog/close-normal": {
+      "count": 4,
+      "last_used": 1778042245.429,
+      "last_action": "run"
+    },
+    "tests/userprog/close-twice": {
+      "count": 4,
+      "last_used": 1778042245.429,
+      "last_action": "run"
+    },
+    "tests/userprog/close-bad-fd": {
+      "count": 4,
+      "last_used": 1778042245.429,
+      "last_action": "run"
+    },
+    "tests/userprog/read-normal": {
+      "count": 43,
+      "last_used": 1778063417.902,
+      "last_action": "run"
+    },
+    "tests/userprog/read-bad-ptr": {
+      "count": 6,
+      "last_used": 1778064876.341,
+      "last_action": "run"
+    },
+    "tests/userprog/read-boundary": {
+      "count": 2,
+      "last_used": 1778064889.857,
+      "last_action": "run"
+    },
+    "tests/userprog/read-zero": {
       "count": 1,
-      "last_used": 1777960511.16,
+      "last_used": 1778063417.902,
+      "last_action": "run"
+    },
+    "tests/userprog/read-stdout": {
+      "count": 6,
+      "last_used": 1778068730.534,
+      "last_action": "run"
+    },
+    "tests/userprog/read-bad-fd": {
+      "count": 6,
+      "last_used": 1778069211.316,
       "last_action": "run"
     }
   }

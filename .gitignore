@@ -40,3 +40,6 @@ pintos/.vscode/pintos-test-history.json
 
 # Local study notes
 docs/
+
+# Annotation (auto-generated)
+.annotation/

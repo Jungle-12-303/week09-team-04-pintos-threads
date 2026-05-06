@@ -12,5 +12,6 @@
         "editor.stickyScroll.defaultModel": "foldingProviderModel",
         "editor.suggest.insertMode": "replace",
         "editor.formatOnSave": true
-    }
+    },
+    "files.autoSave": "afterDelay"
 }
