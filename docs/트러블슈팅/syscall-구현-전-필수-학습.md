@@ -270,46 +270,62 @@ return file_read (f, (void *) buffer, size);
 ```mermaid
 flowchart LR
 	subgraph Caller["호출한 쪽 stack"]
-		f["f<br/>아직 값 없음"]
+		f["호출자 변수 f<br/>아직 값 없음"]
 	end
 
-	subgraph Callee["함수 안 stack"]
-		file["file<br/>&f"]
+	subgraph Callee["fdt_find_fd 함수 안 stack"]
+		file["매개변수 file<br/>값: 호출자 변수 f의 주소"]
+		fdtLocal["지역 변수 fdt<br/>값: 현재 스레드의 fd table 주소"]
 	end
 
-	subgraph FDT["fdt"]
-		fdt3["fdt[3]<br/>0x80001234"]
+	subgraph FDT["현재 스레드의 fdt 배열"]
+		fdt3["fdt[3]<br/>값: 0x80001234"]
 	end
 
 	obj["struct file 객체"]
 
-	file -. "f 변수의 주소를 가리킴" .-> f
+	file -. "file == &f" .-> f
+	fdtLocal --> fdt3
 	fdt3 --> obj
 ```
+
+이 상태에서 `file`은 `&f` 값을 들고 있다. 다시 말해 `file`은 `struct file` 객체를 직접 가리키는 것이 아니라, 호출한 쪽의 지역 변수 `f`를 가리킨다.
 
 함수 안에서 `*file = fdt[fd]`를 실행하면, `file`이 가리키는 곳은 호출한 쪽의 `f` 변수이므로 `f` 자체가 바뀐다.
 
 ```mermaid
 flowchart LR
 	subgraph Caller["호출한 쪽 stack"]
-		f["f<br/>0x80001234"]
+		f["호출자 변수 f<br/>값: 0x80001234"]
 	end
 
-	subgraph Callee["함수 안 stack"]
-		file["file<br/>&f"]
-		assign["*file = fdt[3]"]
+	subgraph Callee["fdt_find_fd 함수 안 stack"]
+		file["매개변수 file<br/>값: 호출자 변수 f의 주소"]
+		fdtLocal["지역 변수 fdt<br/>값: 현재 스레드의 fd table 주소"]
 	end
 
-	subgraph FDT["fdt"]
-		fdt3["fdt[3]<br/>0x80001234"]
+	subgraph FDT["현재 스레드의 fdt 배열"]
+		fdt3["fdt[3]<br/>값: 0x80001234"]
 	end
 
 	obj["struct file 객체"]
 
-	file -. "f 변수의 주소" .-> f
-	assign --> f
+	file -. "file == &f" .-> f
+	fdtLocal --> fdt3
 	f --> obj
 	fdt3 --> obj
+```
+
+즉 이 문장은:
+
+```c
+*file = fdt[fd];
+```
+
+호출한 쪽에서 보면 다음과 같은 효과를 낸다.
+
+```c
+f = fdt[fd];
 ```
 
 정리하면 다음 차이다.
