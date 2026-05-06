@@ -187,20 +187,6 @@ sys_read (uint64_t fd, uint64_t buffer, uint64_t size) {
 	return 0;
 }
 
-/* @note
-Writes size bytes from buffer to the open file fd.
-Returns the number of bytes actually written,
-which may be less than size if some bytes could not be written.
-Writing past end-of-file would normally extend the file,
-but file growth is not implemented by the basic file system.
-The expected behavior is to write as many bytes as possible up to end-of-file and return the actual number written,
-or 0 if no bytes could be written at all. fd 1 writes to the console.
-Your code to write to the console should write all of buffer in one call to putbuf(),
-at least as long as size is not bigger than a few hundred bytes
-(It is reasonable to break up larger buffers).
-Otherwise, lines of text output by different processes may end up interleaved on the console,
-confusing both human readers and our grading scripts.
-*/
 static int
 sys_write (uint64_t fd, uint64_t buffer, uint64_t size) {
 	if (fd == STDOUT_FILENO) {
