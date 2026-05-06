@@ -12,8 +12,7 @@
 
 /* States in a thread's life cycle. */
 /* 스레드 생명주기에서 사용할 수 있는 상태 값들. */
-enum thread_status
-{
+enum thread_status {
 	THREAD_RUNNING, /* Running thread. */
 	/* 현재 CPU에서 실행 중인 스레드. */
 	THREAD_READY, /* Not running but ready to run. */
@@ -21,7 +20,7 @@ enum thread_status
 	THREAD_BLOCKED, /* Waiting for an event to trigger. */
 	/* 어떤 이벤트를 기다리며 잠든 스레드. */
 	THREAD_DYING /* About to be destroyed. */
-				 /* 곧 제거될 스레드. */
+	             /* 곧 제거될 스레드. */
 };
 
 /* Thread identifier type.
@@ -29,16 +28,16 @@ enum thread_status
 /* 스레드 식별자 타입. */
 typedef int tid_t;
 #define TID_ERROR ((tid_t) - 1) /* Error value for tid_t. */
-								/* tid 할당 실패를 나타내는 값. */
+                                /* tid 할당 실패를 나타내는 값. */
 
 /* Thread priorities. */
 /* PintOS 스레드 우선순위 범위. 값이 클수록 우선순위가 높다. */
-#define PRI_MIN 0	   /* Lowest priority. */
-					   /* 가장 낮은 우선순위. */
+#define PRI_MIN 0      /* Lowest priority. */
+                       /* 가장 낮은 우선순위. */
 #define PRI_DEFAULT 31 /* Default priority. */
-					   /* 기본 우선순위. */
-#define PRI_MAX 63	   /* Highest priority. */
-					   /* 가장 높은 우선순위. */
+                       /* 기본 우선순위. */
+#define PRI_MAX 63     /* Highest priority. */
+                       /* 가장 높은 우선순위. */
 
 #define MAX_FD 32 //
 /* A kernel thread or user process.
@@ -102,21 +101,20 @@ typedef int tid_t;
  * blocked state is on a semaphore wait list. */
 /* elem은 ready list와 semaphore waiters list에서 함께 쓰인다.
  * READY 스레드와 BLOCKED 스레드는 동시에 같은 리스트에 들어가지 않기 때문에 공유할 수 있다. */
-struct thread
-{
+struct thread {
 	/* Owned by thread.c. */
 	/* thread.c가 관리하는 기본 스레드 정보. */
-	tid_t tid;				   /* Thread identifier. */
-							   /* 스레드 식별자. */
+	tid_t tid;                 /* Thread identifier. */
+	                           /* 스레드 식별자. */
 	enum thread_status status; /* Thread state. */
-							   /* 현재 스레드 상태. */
+	                           /* 현재 스레드 상태. */
 
 	char name[16]; /* Name (for debugging purposes). */
-				   /* 디버깅용 스레드 이름. */
+	               /* 디버깅용 스레드 이름. */
 
-	int priority;		 /* Priority. */
+	int priority;        /* Priority. */
 	int64_t wakeup_tick; /* Tick to wake up sleeping thread. */
-						 /* 잠든 스레드가 다시 깨어나야 하는 타이머 틱. */
+	                     /* 잠든 스레드가 다시 깨어나야 하는 타이머 틱. */
 
 	/* Shared between thread.c and synch.c. */
 	/* ready list 또는 동기화 객체 대기 목록에 연결될 때 사용하는 공용 리스트 요소. */
@@ -144,12 +142,11 @@ struct thread
 
 	/* Owned by thread.c. */
 	struct intr_frame tf; /* Information for switching */
-	unsigned magic;		  /* Detects stack overflow. */
+	unsigned magic;       /* Detects stack overflow. */
 };
 
 /* child status structure for tracking child thread information */
-struct child_status
-{
+struct child_status {
 	tid_t tid;
 	int exit_status;
 	bool waited;
@@ -159,17 +156,14 @@ struct child_status
 	struct list_elem elem;
 };
 
-// struct fdt
-// {
-// 	uint64_t fdt_arr[MAX_FD];
-// 	list *unusing_fd;
-// }
+//@region fdt 관련 함수
 
-void fdt_init(void);
-int fd_alloc(void *file);
-bool fdt_find_fd(int fd, void *file);
-bool fdt_close_fd(int fd);
-bool fdt_destroy();
+void fdt_init (void);
+int fd_alloc (void *file);
+bool fdt_find_fd (int fd, void **file);
+bool fdt_close_fd (int fd);
+bool fdt_destroy ();
+//@endregion
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
@@ -177,44 +171,44 @@ bool fdt_destroy();
 /* false이면 기본 round-robin 스케줄러를 사용하고, true이면 MLFQS를 사용한다. */
 extern bool thread_mlfqs;
 
-void thread_init(void);
-void thread_start(void);
+void thread_init (void);
+void thread_start (void);
 
-void thread_tick(void);
-void thread_print_stats(void);
+void thread_tick (void);
+void thread_print_stats (void);
 
-typedef void thread_func(void *aux);
-tid_t thread_create(const char *name, int priority, thread_func *, void *);
+typedef void thread_func (void *aux);
+tid_t thread_create (const char *name, int priority, thread_func *, void *);
 
 /* Function pointers for list ordering. */
 /* 리스트 정렬에 사용하는 비교 함수들. */
-bool thread_wakeup_tick_less(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
-bool thread_priority_greater(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+bool thread_wakeup_tick_less (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+bool thread_priority_greater (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 
-void thread_block(void);
-void thread_unblock(struct thread *);
+void thread_block (void);
+void thread_unblock (struct thread *);
 
-void thread_add_to_sleeping_list(int64_t ticks);
-void thread_wakeup(int64_t ticks);
+void thread_add_to_sleeping_list (int64_t ticks);
+void thread_wakeup (int64_t ticks);
 
-struct thread *thread_current(void);
-tid_t thread_tid(void);
-const char *thread_name(void);
+struct thread *thread_current (void);
+tid_t thread_tid (void);
+const char *thread_name (void);
 
-void thread_exit(void) NO_RETURN;
-void thread_yield(void);
+void thread_exit (void) NO_RETURN;
+void thread_yield (void);
 
-int thread_get_priority(void);
-void thread_set_priority(int);
+int thread_get_priority (void);
+void thread_set_priority (int);
 
-int thread_get_nice(void);
-void thread_set_nice(int);
-int thread_get_recent_cpu(void);
-int thread_get_load_avg(void);
+int thread_get_nice (void);
+void thread_set_nice (int);
+int thread_get_recent_cpu (void);
+int thread_get_load_avg (void);
 
-void do_iret(struct intr_frame *tf);
+void do_iret (struct intr_frame *tf);
 
 /* parent-child relationship */
-struct child_status *create_child_status(struct thread *parent);
+struct child_status *create_child_status (struct thread *parent);
 
 #endif /* threads/thread.h */
