@@ -131,7 +131,7 @@ struct thread {
 	struct list children;
 	struct child_status *my_status;
 	int exit_status;
-	uint64_t fd[FD_SIZE]; // int로 하지 말것.
+	uint64_t fd[FD_SIZE]; // !!int로 하지 말것.
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */

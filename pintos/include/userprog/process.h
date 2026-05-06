@@ -4,10 +4,15 @@
 #include "threads/thread.h"
 
 struct exec_info {
-    char *file_name;
-    struct child_status *status;
+	char *file_name;
+	struct child_status *status;
 };
 
+struct fork_info {
+	struct thread *parent_thread;
+	struct intr_frame *f_;
+	struct semaphore fork_wait;
+};
 
 tid_t process_create_initd (const char *file_name);
 tid_t process_fork (const char *name, struct intr_frame *if_);

@@ -29,6 +29,7 @@ static int sys_read (int fd, void *buffer, unsigned size);
 static int sys_filesize (int fd);
 static void sys_seek (int fd, unsigned position);
 static int sys_tell (int fd);
+static int sys_fork (const char *thread_name, struct intr_frame *f);
 
 struct lock file_lock;
 
@@ -102,6 +103,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		break;
 	case SYS_TELL:
 		ret = sys_tell (arg[0]);
+		break;
+	case SYS_FORK:
+		ret = sys_fork (arg[0], f);
 		break;
 	default:
 		sys_exit (-1);
@@ -292,4 +296,9 @@ sys_tell (int fd) {
 	lock_release (&file_lock);
 
 	return temp;
+}
+
+static int
+sys_fork (const char *thread_name, struct intr_frame *f) {
+	return process_fork (thread_name, f);
 }
