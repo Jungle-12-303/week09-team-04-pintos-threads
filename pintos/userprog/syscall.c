@@ -18,8 +18,8 @@ void syscall_handler (struct intr_frame *);
 
 static int sys_halt (void);
 static void sys_exit (uint64_t status);
-static void sys_fork (uint64_t thread_name);
-static void sys_exec (uint64_t file);
+static pid_t sys_fork (uint64_t thread_name);
+static int sys_exec (uint64_t file);
 static int sys_wait (tid_t child_tid);
 
 static int sys_create (uint64_t name, uint64_t size);
@@ -28,8 +28,8 @@ static int sys_open (uint64_t name);
 static int sys_filesize (uint64_t fd);
 static int sys_read (uint64_t fd, uint64_t buffer, uint64_t size);
 static int sys_write (uint64_t fd, uint64_t buffer, uint64_t size);
-static int sys_seek (uint64_t fd, uint64_t position);
-static int sys_tell (uint64_t fd);
+static void sys_seek (uint64_t fd, uint64_t position);
+static unsigned sys_tell (uint64_t fd);
 static void sys_close (uint64_t fd);
 
 static bool is_valid_user_ptr (void *uaddr);
@@ -88,6 +88,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		break;
 
 	case SYS_FORK:
+		ret = sys_fork (arg[0]);
 		break;
 
 	case SYS_EXEC:
@@ -146,11 +147,30 @@ sys_exit (uint64_t status) {
 	thread_exit ();
 }
 
+/* @note
+    현재 프로세스를 인자 이름으로 하는 프로세스를 만들기
+    callee-saved registers인 %RBX, %RSP, %RBP, and %R12 - %R15외에는 복사할 필요 없음
+    반환값은 pid
+
+    자식 프로세스는 0을 반환해야 하고
+    자식은 복사된 file descriptor and virtual memory space를 가져야 함
+
+    부모는 절대 자식 프로세스가 성공적으로 복제되는 동안에 반환되면 안된다
+    만약 자식 프로세스가 복제되는게 실패하면 TID_ERROR를 반환한다.
+
+    유저 메모리를 복사하는데에 threads/mmu.c의 pml4_for_each()를 사용
+    또한 pte_for_each_func으로 놓친 구간을 채워야 한다
+
+*/
 static void
 sys_fork (uint64_t thread_name) {
+	__pid_t pid = 0;
+	struct thread *t = thread_current ();
+
+	return pid;
 }
 
-static void
+static int
 sys_exec (uint64_t file) {
 }
 
@@ -209,9 +229,8 @@ sys_write (uint64_t fd, uint64_t buffer, uint64_t size) {
 
 static int
 sys_create (uint64_t buffer, uint64_t size) {
-	if (!is_valid_user_ptr ((void *) buffer)) {
-		sys_exit (-1);
-	}
+	if (!is_valid_user_ptr ((void *) buffer)
+		sys_exit (FAIL_NO);
 
 	return filesys_create (buffer, size);
 }
@@ -222,7 +241,6 @@ sys_open (uint64_t name) {
 	if (!is_valid_user_ptr (name))
 		sys_exit (FAIL_NO);
 
-	//@bookmark file_read
 	struct file *f = filesys_open (name);
 	if (f == NULL)
 		return FAIL_NO;
@@ -252,23 +270,6 @@ sys_close (uint64_t fd) {
 	if (fdt_close_fd ((int) fd) == true)
 		thread_current ()->exit_status = 0;
 }
-/*@todo: 유저 메모리 유효성 체크
-
-is_valid_user_ptr()
-NULL
-매핑되지 않은 주소
-커널 영역 주소
-
-is_valid_user_buffer()
-시작 주소만 유효하고 중간에 끊기는 버퍼
-문자열 끝의 \0을 만나기 전에 invalid page로 넘어가는 주소
-
-is_readable_address
-읽어야 하는데 읽을 수 없는 주소
-
-is_writable_address
-써야 하는데 쓸 수 없는 주소
-*/
 
 static bool
 is_valid_user_ptr (void *uaddr) {
@@ -283,52 +284,52 @@ is_valid_user_ptr (void *uaddr) {
 	return true;
 }
 
-static bool
-is_valid_string (void *uaddr) {
-	if (is_valid_user_ptr (uaddr))
-		return false;
+// static bool
+// is_valid_string (void *uaddr) {
+// 	if (is_valid_user_ptr (uaddr))
+// 		return false;
 
-	char *currP = (char *) uaddr;
-	while (currP != '\0') {
-		if (is_valid_user_ptr (currP))
-			return false;
+// 	char *currP = (char *) uaddr;
+// 	while (currP != '\0') {
+// 		if (is_valid_user_ptr (currP))
+// 			return false;
 
-		currP += 1;
-	}
+// 		currP += 1;
+// 	}
 
-	return true;
-}
+// 	return true;
+// }
 
-static bool
-is_valid_user_buffer (void *buffer, unsigned size) {
-	//@note: 제시한 버퍼주소부터 체크
-	if (is_valid_user_ptr (buffer))
-		return false;
+// static bool
+// is_valid_user_buffer (void *buffer, unsigned size) {
+// 	//@note: 제시한 버퍼주소부터 체크
+// 	if (is_valid_user_ptr (buffer))
+// 		return false;
 
-	uintptr_t *uaddr = buffer;
-	uintptr_t *end_uaddr = (uintptr_t) buffer + size;
-	uintptr_t diff;
+// 	uintptr_t *uaddr = buffer;
+// 	uintptr_t *end_uaddr = (uintptr_t) buffer + size;
+// 	uintptr_t diff;
 
-	while (uaddr <= end_uaddr) {
-		diff = end_uaddr - uaddr;
+// 	while (uaddr <= end_uaddr) {
+// 		diff = end_uaddr - uaddr;
 
-		// @note: 버퍼 크기가 페이지 단위를 안 넘을 때
-		if (diff < PGSIZE) {
-			return (is_valid_user_ptr ((void *) (buffer + size)));
-		} else {
-			uaddr += PGSIZE;
-			if (!is_valid_user_ptr (uaddr))
-				return false;
-		}
-	}
+// 		// @note: 버퍼 크기가 페이지 단위를 안 넘을 때
+// 		if (diff < PGSIZE) {
+// 			return (is_valid_user_ptr ((void *) (buffer + size)));
+// 		} else {
+// 			uaddr += PGSIZE;
+// 			if (!is_valid_user_ptr (uaddr))
+// 				return false;
+// 		}
+// 	}
 
-	return true;
-}
+// 	return true;
+// }
 
-static bool
-is_readable_address (void *buffer) {
-}
+// static bool
+// is_readable_address (void *buffer) {
+// }
 
-static bool
-is_writable_address (void *buffer) {
-}
+// static bool
+// is_writable_address (void *buffer) {
+// }
