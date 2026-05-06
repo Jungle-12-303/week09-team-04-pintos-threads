@@ -52,7 +52,8 @@ static bool is_writable_address (void *buffer);
 #define MSR_LSTAR        0xc0000082 /* Long mode SYSCALL target */
 #define MSR_SYSCALL_MASK 0xc0000084 /* Mask for the eflags */
 
-#define FAIL_NO -1
+#define FAIL_NO    -1
+#define Success_NO 0
 
 void
 syscall_init (void) {
@@ -175,7 +176,6 @@ sys_read (uint64_t fd, uint64_t buffer, uint64_t size) {
 	} else {
 		struct file *f;
 
-		//@note 없는 fd거나 buffer가 잘못된 포인터면 프로그램 죽이기
 		if (fdt_find_fd (fd, &f) == false || !is_valid_user_ptr ((void *) buffer)) {
 			sys_exit (-1);
 		}
@@ -187,11 +187,36 @@ sys_read (uint64_t fd, uint64_t buffer, uint64_t size) {
 	return 0;
 }
 
+/* @note
+Writes size bytes from buffer to the open file fd.
+Returns the number of bytes actually written,
+which may be less than size if some bytes could not be written.
+Writing past end-of-file would normally extend the file,
+but file growth is not implemented by the basic file system.
+The expected behavior is to write as many bytes as possible up to end-of-file and return the actual number written,
+or 0 if no bytes could be written at all. fd 1 writes to the console.
+Your code to write to the console should write all of buffer in one call to putbuf(),
+at least as long as size is not bigger than a few hundred bytes
+(It is reasonable to break up larger buffers).
+Otherwise, lines of text output by different processes may end up interleaved on the console,
+confusing both human readers and our grading scripts.
+*/
 static int
 sys_write (uint64_t fd, uint64_t buffer, uint64_t size) {
 	if (fd == STDOUT_FILENO) {
 		putbuf ((const char *) buffer, size);
 		return size;
+	} else {
+		struct file *f;
+
+		if (fdt_find_fd (fd, &f) == false || !is_valid_user_ptr ((void *) buffer))
+			sys_exit (FAIL_NO);
+
+		if (size == 0)
+			thread_current ()->exit_status = Success_NO;
+
+		// printf ("!! sysread 파일 주소: %lld \n", f);
+		return file_write (f, (void *) buffer, (off_t) size);
 	}
 	return -1;
 }
