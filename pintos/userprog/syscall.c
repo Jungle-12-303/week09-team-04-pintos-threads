@@ -204,7 +204,7 @@ sys_read (uint64_t fd, uint64_t buffer, uint64_t size) {
 		return file_read (f, (void *) buffer, (off_t) size);
 	}
 
-	return 0;
+	return Success_NO;
 }
 
 static int
@@ -233,7 +233,6 @@ sys_create (uint64_t buffer, uint64_t size) {
 
 static int
 sys_open (uint64_t name) {
-	int ret = FAIL_NO;
 	if (!is_valid_user_ptr (name))
 		sys_exit (FAIL_NO);
 
@@ -241,12 +240,10 @@ sys_open (uint64_t name) {
 	if (f == NULL)
 		return FAIL_NO;
 
-	struct thread *t = thread_current ();
-	if (t->fdt == 0)
+	if (thread_current ()->fdt == 0)
 		fdt_init ();
 
-	if (fd_alloc (f) < 3)
-		sys_exit (FAIL_NO);
+	return fd_alloc (f);
 }
 
 static int
