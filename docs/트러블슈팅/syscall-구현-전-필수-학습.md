@@ -192,34 +192,47 @@ fdt_find_fd (int fd, void *file) {
 
 호출 직후 상태를 그림으로 보면 이렇다.
 
-```text
-호출한 쪽 stack                  fdt
-----------------              -------------------------
-f : 초기화 안 된 값             fdt[3] : 0x80001234 ----+
-                                                        |
-                                                        v
-                                                struct file 객체
+```mermaid
+flowchart LR
+	subgraph Caller["호출한 쪽 stack"]
+		f["f<br/>초기화 안 된 값"]
+	end
 
-fdt_find_fd(fd, (void *) f) 호출
+	subgraph Callee["함수 안 stack"]
+		file["file<br/>f 값의 복사본"]
+	end
 
-함수 안 stack
-----------------
-file : f 값의 복사본
+	subgraph FDT["fdt"]
+		fdt3["fdt[3]<br/>0x80001234"]
+	end
+
+	obj["struct file 객체"]
+
+	f -. "값 복사" .-> file
+	fdt3 --> obj
 ```
 
 함수 안에서 `file = fdt[fd]`를 실행하면 바뀌는 것은 함수 안의 복사본뿐이다.
 
-```text
-호출한 쪽 stack                  fdt
-----------------              -------------------------
-f : 여전히 초기화 안 된 값       fdt[3] : 0x80001234 ----+
-                                                        |
-                                                        v
-                                                struct file 객체
+```mermaid
+flowchart LR
+	subgraph Caller["호출한 쪽 stack"]
+		f["f<br/>여전히 초기화 안 된 값"]
+	end
 
-함수 안 stack
-----------------
-file : 0x80001234
+	subgraph Callee["함수 안 stack"]
+		file["file<br/>0x80001234"]
+	end
+
+	subgraph FDT["fdt"]
+		fdt3["fdt[3]<br/>0x80001234"]
+	end
+
+	obj["struct file 객체"]
+
+	file --> obj
+	fdt3 --> obj
+	f -. "바뀌지 않음" .-> f
 ```
 
 즉 `file`은 `struct file` 객체를 가리키게 되었지만, 호출한 쪽의 `f` 변수는 그대로다. 그래서 `fdt_find_fd()` 이후에 `f`를 사용하면 초기화되지 않은 포인터를 사용하는 문제가 된다.
@@ -254,34 +267,49 @@ return file_read (f, (void *) buffer, size);
 
 이때 그림은 이렇게 바뀐다.
 
-```text
-호출한 쪽 stack                  fdt
-----------------              -------------------------
-f : 아직 값 없음                 fdt[3] : 0x80001234 ----+
-^                                                       |
-|                                                       v
-|                                               struct file 객체
-|
-+-- &f
+```mermaid
+flowchart LR
+	subgraph Caller["호출한 쪽 stack"]
+		f["f<br/>아직 값 없음"]
+	end
 
-fdt_find_fd(fd, &f) 호출
+	subgraph Callee["함수 안 stack"]
+		file["file<br/>&f"]
+	end
 
-함수 안 stack
-----------------
-file : &f
+	subgraph FDT["fdt"]
+		fdt3["fdt[3]<br/>0x80001234"]
+	end
+
+	obj["struct file 객체"]
+
+	file -. "f 변수의 주소를 가리킴" .-> f
+	fdt3 --> obj
 ```
 
 함수 안에서 `*file = fdt[fd]`를 실행하면, `file`이 가리키는 곳은 호출한 쪽의 `f` 변수이므로 `f` 자체가 바뀐다.
 
-```text
-호출한 쪽 stack                  fdt
-----------------              -------------------------
-f : 0x80001234 ----------------> struct file 객체
+```mermaid
+flowchart LR
+	subgraph Caller["호출한 쪽 stack"]
+		f["f<br/>0x80001234"]
+	end
 
-함수 안 stack
-----------------
-file : &f
-*file = fdt[3]
+	subgraph Callee["함수 안 stack"]
+		file["file<br/>&f"]
+		assign["*file = fdt[3]"]
+	end
+
+	subgraph FDT["fdt"]
+		fdt3["fdt[3]<br/>0x80001234"]
+	end
+
+	obj["struct file 객체"]
+
+	file -. "f 변수의 주소" .-> f
+	assign --> f
+	f --> obj
+	fdt3 --> obj
 ```
 
 정리하면 다음 차이다.
