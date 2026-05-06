@@ -18,7 +18,7 @@ void syscall_handler (struct intr_frame *);
 
 static int sys_halt (void);
 static void sys_exit (uint64_t status);
-static pid_t sys_fork (uint64_t thread_name);
+static tid_t sys_fork (uint64_t thread_name);
 static int sys_exec (uint64_t file);
 static int sys_wait (tid_t child_tid);
 
@@ -33,10 +33,10 @@ static unsigned sys_tell (uint64_t fd);
 static void sys_close (uint64_t fd);
 
 static bool is_valid_user_ptr (void *uaddr);
-static bool is_valid_string (void *uaddr);
-static bool is_valid_user_buffer (void *buffer, unsigned size);
-static bool is_readable_address (void *buffer);
-static bool is_writable_address (void *buffer);
+// static bool is_valid_string (void *uaddr);
+// static bool is_valid_user_buffer (void *buffer, unsigned size);
+// static bool is_readable_address (void *buffer);
+// static bool is_writable_address (void *buffer);
 
 /* System call.
  *
@@ -162,9 +162,9 @@ sys_exit (uint64_t status) {
     또한 pte_for_each_func으로 놓친 구간을 채워야 한다
 
 */
-static void
+static tid_t
 sys_fork (uint64_t thread_name) {
-	__pid_t pid = 0;
+	tid_t pid = 0;
 	struct thread *t = thread_current ();
 
 	return pid;
@@ -197,7 +197,7 @@ sys_read (uint64_t fd, uint64_t buffer, uint64_t size) {
 		struct file *f;
 
 		if (fdt_find_fd (fd, &f) == false || !is_valid_user_ptr ((void *) buffer)) {
-			sys_exit (-1);
+			sys_exit (FAIL_NO);
 		}
 
 		// printf ("!! sysread 파일 주소: %lld \n", f);
@@ -218,18 +218,14 @@ sys_write (uint64_t fd, uint64_t buffer, uint64_t size) {
 		if (fdt_find_fd (fd, &f) == false || !is_valid_user_ptr ((void *) buffer))
 			sys_exit (FAIL_NO);
 
-		if (size == 0)
-			thread_current ()->exit_status = Success_NO;
-
 		// printf ("!! sysread 파일 주소: %lld \n", f);
 		return file_write (f, (void *) buffer, (off_t) size);
 	}
-	return -1;
 }
 
 static int
 sys_create (uint64_t buffer, uint64_t size) {
-	if (!is_valid_user_ptr ((void *) buffer)
+	if (!is_valid_user_ptr ((void *) buffer))
 		sys_exit (FAIL_NO);
 
 	return filesys_create (buffer, size);
@@ -249,18 +245,15 @@ sys_open (uint64_t name) {
 	if (t->fdt == 0)
 		fdt_init ();
 
-	ret = fd_alloc (f);
-	if (ret < 3) {
-		ret = FAIL_NO;
+	if (fd_alloc (f) < 3)
 		sys_exit (FAIL_NO);
-	}
 }
 
 static int
 sys_filesize (uint64_t fd) {
 	struct file *f;
 	if (fdt_find_fd (fd, &f) == false)
-		return -1;
+		return FAIL_NO;
 
 	return file_length (f);
 }
@@ -268,7 +261,7 @@ sys_filesize (uint64_t fd) {
 static void
 sys_close (uint64_t fd) {
 	if (fdt_close_fd ((int) fd) == true)
-		thread_current ()->exit_status = 0;
+		thread_current ()->exit_status = Success_NO;
 }
 
 static bool

@@ -121,12 +121,6 @@ fdt_find_fd (int fd, void **file) {
 	if (fd < 3 || fd >= MAX_FD)
 		return false;
 
-	/*
-	16진수
-	없는 fd
-	음수
-	최대최소를 벗어남
-	*/
 	void **fdt = thread_current ()->fdt;
 
 	if (fdt[fd] == 0) {
