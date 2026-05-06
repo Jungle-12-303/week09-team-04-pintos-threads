@@ -13,6 +13,7 @@
 #include "threads/vaddr.h"
 #include "threads/mmu.h"
 #include "filesys/file.h"
+#include "devices/input.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -26,6 +27,9 @@ static bool is_valid_user_ptr(const void*uaddr);
 static bool is_valid_user_string(const char *str);
 static int sys_open(const char *file);
 static void sys_close(int fd);
+static int sys_read(uint64_t fd, uint64_t buffer, uint64_t size);
+static bool is_valid_user_buffer(uint64_t buffer, uint64_t size, bool writable);
+static int sys_filesize(uint64_t fd);
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -82,6 +86,12 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_CLOSE:
 			sys_close((int)arg[0]);
 			break;
+		case SYS_READ:
+			ret = sys_read(arg[0], arg[1],arg[2]);
+			break;
+		case SYS_FILESIZE:
+			ret = sys_filesize(arg[0]);
+			break;
 		default:
 			sys_exit (-1);
 			 break;
@@ -102,7 +112,7 @@ is_valid_user_ptr(const void *uaddr){
 }
 
 static bool is_valid_user_string(const char *str){
-	char *p = str;
+	const char *p = str;
 
 	while(true){
 		if (!is_valid_user_ptr(p)){
@@ -114,6 +124,40 @@ static bool is_valid_user_string(const char *str){
 		}
 		p++;
 	}
+}
+
+static bool 
+is_valid_user_buffer(uint64_t buffer, uint64_t size, bool writable){
+	if (size == 0){
+		return true;
+	}
+	if (buffer == 0){
+		return false;
+	}
+	
+	uint64_t start = buffer;
+	uint64_t end = buffer + size -1;
+
+	if(end < start){
+		return false;
+	}
+
+	if (!is_user_vaddr((void*)start)){
+		return false;
+	}
+	if (!is_user_vaddr((void*)end)){
+		return false;
+	}
+
+	for(uint64_t addr = start; addr <= end; addr = (uint64_t)pg_round_down((void*)addr) + PGSIZE){
+		if(!is_user_vaddr((void*)addr)){
+			return false;
+		}
+		if(pml4_get_page(thread_current()->pml4, (void*)addr)==NULL){
+			return false;
+		}
+	}
+	return true;
 }
 
 static int
@@ -192,4 +236,53 @@ sys_close(int fd){
 
 	file_close(cur->fd_table[fd]);
 	cur->fd_table[fd] = NULL;	
+}
+
+static int
+sys_read(uint64_t fd, uint64_t buffer, uint64_t size){
+	if(size == 0){
+		return 0;
+	}
+	if(!is_valid_user_buffer(buffer, size, true)){
+		sys_exit(-1);
+	}
+	struct thread *cur = thread_current();
+	if(fd == 0){
+		uint8_t* buf = (uint8_t*)buffer;
+		for(uint64_t i=0; i<size; i++){
+			buf[i] = input_getc();
+		}
+		return size;
+	}
+	if(fd == 1){
+		return -1;
+	}
+	if(fd >= FD_MAX){
+		return -1;
+	}
+
+	if(cur->fd_table[fd] !=NULL){
+		return file_read(cur->fd_table[fd], (void*)buffer, size);
+	}
+	else{
+		return -1;
+	}
+}
+
+static int
+sys_filesize(uint64_t fd){
+	if (fd < 2){
+		return -1;
+	}
+	if (fd >= FD_MAX){
+		return -1;
+	}
+
+	struct thread *cur = thread_current();
+
+	if(cur->fd_table[fd] == NULL){
+		return -1;
+	}
+
+	return file_length(cur->fd_table[fd]);
 }
