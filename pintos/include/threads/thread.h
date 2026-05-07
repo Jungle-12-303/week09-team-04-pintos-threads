@@ -132,8 +132,11 @@ struct thread {
 	struct child_status *my_status;
 	int exit_status;
 
+	
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
+	struct file *exec_file; /* The file that the thread is currently running. */
 	uint64_t *pml4;                     /* Page map level 4 */
 	struct file *fd_file[FD_MAX];				/* Open files. */
 #endif
@@ -146,6 +149,7 @@ struct thread {
 	struct intr_frame tf;               /* Information for switching */
 	unsigned magic;                     /* Detects stack overflow. */
 };
+
 
 /* child status structure for tracking child thread information */
 struct child_status {
@@ -201,6 +205,8 @@ int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
 void do_iret (struct intr_frame *tf);
+
+void set_thread_name (const char *name);
 
 /* parent-child relationship */
 struct child_status *create_child_status (struct thread *parent);

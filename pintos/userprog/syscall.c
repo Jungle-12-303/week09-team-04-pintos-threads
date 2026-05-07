@@ -14,13 +14,16 @@
 #include "filesys/filesys.h"
 #include "filesys/file.h"
 #include "devices/input.h"
+#include <string.h>
+#include "threads/palloc.h"
+
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 
 static void sys_halt (void);
 static void sys_exit (uint64_t status);
-static tid_t sys_fork (const char *thread_name);
+static tid_t sys_fork (const char *thread_name, struct intr_frame *f);
 static int sys_exec (const char *cmd_line);
 static int sys_wait (tid_t child_tid);
 static bool sys_create (const char *file, unsigned initial_size);
@@ -83,7 +86,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 
 		case SYS_FORK:
-			ret = sys_fork((const char *) arg[0]);
+			ret = sys_fork((const char *) arg[0], f);
 			break;
 
 		case SYS_EXEC:
@@ -154,19 +157,26 @@ sys_exit (uint64_t status){
 	thread_exit();
 }
 
-
 static tid_t 
-sys_fork (const char *thread_name){
-	// not implemented
-	(void) thread_name;
-	return -1;
+sys_fork (const char *thread_name, struct intr_frame *f) {
+	user_buffer_test_string(thread_name);
+	return process_fork((const char *) thread_name, f);
 }
 
 static int 
 sys_exec (const char *cmd_line){
-	//not implemented
 	user_buffer_test_string(cmd_line);
-	return -1;
+	
+	char *copy = palloc_get_page(0);    
+	if (copy == NULL)
+        return -1;
+    strlcpy(copy, cmd_line, PGSIZE);
+
+	int ret = process_exec(copy);
+	if (ret == -1)
+		sys_exit(-1);
+	
+    NOT_REACHED();
 }
 
 static int
@@ -205,6 +215,7 @@ sys_open (const char *file){
 			return fd;
 		}
 	}
+	file_close(opened_file); // No available file descriptor
 	return -1;
 }
 

@@ -216,6 +216,13 @@ thread_create (const char *name, int priority,
 	init_thread (t, name, priority);
 	tid = t->tid = allocate_tid ();
 
+#ifdef USERPROG
+	/* Initialize file descriptors. */
+	for (int i = 0; i < FD_MAX; i++) {
+		t->fd_file[i] = NULL;
+	}
+#endif
+
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
 	t->tf.rip = (uintptr_t) kernel_thread;
@@ -680,6 +687,18 @@ static bool	ready_has_higher_priority (void) {
 	struct thread *curr = thread_current ();
 	struct thread *ready = list_entry (list_front (&ready_list), struct thread, elem);
 	return curr->priority < ready->priority;
+}
+
+void set_thread_name (const char *name) {
+	struct thread *curr = thread_current ();
+	size_t name_len = 0;
+
+	while (name[name_len]!=' ' && name[name_len]!='\0') {
+		name_len++;
+	}
+	
+	memcpy (curr->name, name, name_len);
+	curr->name[name_len] = '\0';
 }
 
 struct child_status *create_child_status (struct thread *parent) {
