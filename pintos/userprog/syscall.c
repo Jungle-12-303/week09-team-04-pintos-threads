@@ -12,6 +12,7 @@
 #include "filesys/filesys.h"
 #include "filesys/file.h"
 #include "string.h"
+#include "threads/palloc.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -30,6 +31,7 @@ static int sys_filesize (int fd);
 static void sys_seek (int fd, unsigned position);
 static int sys_tell (int fd);
 static int sys_fork (const char *thread_name, struct intr_frame *f);
+static int sys_exec (const char *file);
 
 struct lock file_lock;
 
@@ -106,6 +108,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		break;
 	case SYS_FORK:
 		ret = sys_fork (arg[0], f);
+		break;
+	case SYS_EXEC:
+		ret = sys_exec (arg[0]);
 		break;
 	default:
 		sys_exit (-1);
@@ -301,4 +306,13 @@ sys_tell (int fd) {
 static int
 sys_fork (const char *thread_name, struct intr_frame *f) {
 	return process_fork (thread_name, f);
+}
+
+static int
+sys_exec (const char *file) {
+	valid_argument (file);
+	char *fn = palloc_get_page (PAL_ZERO);
+
+	strlcpy (fn, file, PGSIZE);
+	return process_exec (fn);
 }

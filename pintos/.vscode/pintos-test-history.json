@@ -73,9 +73,9 @@
       "last_action": "run"
     },
     "tests/userprog/wait-simple": {
-      "count": 2,
-      "last_used": 1778071893.465,
-      "last_action": "run"
+      "count": 6,
+      "last_used": 1778073041.047,
+      "last_action": "debug"
     },
     "tests/userprog/wait-twice": {
       "count": 2,
@@ -295,6 +295,36 @@
     "tests/userprog/fork-boundary": {
       "count": 1,
       "last_used": 1778071766.748,
+      "last_action": "run"
+    },
+    "tests/userprog/exec-once": {
+      "count": 6,
+      "last_used": 1778081593.666,
+      "last_action": "run"
+    },
+    "tests/userprog/exec-arg": {
+      "count": 1,
+      "last_used": 1778081593.666,
+      "last_action": "run"
+    },
+    "tests/userprog/exec-boundary": {
+      "count": 1,
+      "last_used": 1778081593.666,
+      "last_action": "run"
+    },
+    "tests/userprog/exec-missing": {
+      "count": 1,
+      "last_used": 1778081593.666,
+      "last_action": "run"
+    },
+    "tests/userprog/exec-bad-ptr": {
+      "count": 1,
+      "last_used": 1778081593.666,
+      "last_action": "run"
+    },
+    "tests/userprog/exec-read": {
+      "count": 1,
+      "last_used": 1778081593.666,
       "last_action": "run"
     }
   }

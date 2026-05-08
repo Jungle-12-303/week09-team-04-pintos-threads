@@ -240,7 +240,7 @@ process_exec (void *f_name) {
 	/* If load failed, quit. */
 	palloc_free_page (file_name);
 	if (!success)
-		return -1;
+		thread_exit ();
 
 	/* Start switched process. */
 	do_iret (&_if);
@@ -456,7 +456,7 @@ load (const char *file_name, struct intr_frame *if_) {
 		goto done;
 	file_name = parsed_file_name;
 
-	strlcpy (t->name, parsed_file_name, sizeof t->name);
+	// strlcpy (t->name, parsed_file_name, sizeof t->name);
 
 	/* Count arguments & put in argv */
 	argv[0] = parsed_file_name;
