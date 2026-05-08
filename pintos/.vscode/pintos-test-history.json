@@ -68,83 +68,133 @@
       "last_action": "run"
     },
     "tests/userprog/open-normal": {
-      "count": 4,
-      "last_used": 1778065934.239,
+      "count": 14,
+      "last_used": 1778088254.002,
       "last_action": "run"
     },
     "tests/userprog/open-missing": {
-      "count": 4,
-      "last_used": 1778065934.239,
+      "count": 14,
+      "last_used": 1778088254.002,
       "last_action": "run"
     },
     "tests/userprog/open-boundary": {
-      "count": 4,
-      "last_used": 1778065934.239,
+      "count": 14,
+      "last_used": 1778088254.002,
       "last_action": "run"
     },
     "tests/userprog/open-empty": {
-      "count": 4,
-      "last_used": 1778065934.239,
+      "count": 14,
+      "last_used": 1778088254.002,
       "last_action": "run"
     },
     "tests/userprog/open-null": {
-      "count": 4,
-      "last_used": 1778065934.239,
+      "count": 14,
+      "last_used": 1778088254.002,
       "last_action": "run"
     },
     "tests/userprog/open-bad-ptr": {
-      "count": 4,
-      "last_used": 1778065934.239,
+      "count": 14,
+      "last_used": 1778088254.002,
       "last_action": "run"
     },
     "tests/userprog/open-twice": {
-      "count": 4,
-      "last_used": 1778065934.239,
+      "count": 14,
+      "last_used": 1778088254.002,
       "last_action": "run"
     },
     "tests/userprog/close-normal": {
-      "count": 4,
-      "last_used": 1778042245.429,
+      "count": 5,
+      "last_used": 1778075960.376,
       "last_action": "run"
     },
     "tests/userprog/close-twice": {
-      "count": 4,
-      "last_used": 1778042245.429,
+      "count": 5,
+      "last_used": 1778075960.376,
       "last_action": "run"
     },
     "tests/userprog/close-bad-fd": {
-      "count": 4,
-      "last_used": 1778042245.429,
+      "count": 5,
+      "last_used": 1778075960.376,
       "last_action": "run"
     },
     "tests/userprog/read-normal": {
-      "count": 43,
-      "last_used": 1778063417.902,
+      "count": 44,
+      "last_used": 1778075960.376,
       "last_action": "run"
     },
     "tests/userprog/read-bad-ptr": {
-      "count": 6,
-      "last_used": 1778064876.341,
+      "count": 7,
+      "last_used": 1778075960.376,
       "last_action": "run"
     },
     "tests/userprog/read-boundary": {
-      "count": 2,
-      "last_used": 1778064889.857,
+      "count": 3,
+      "last_used": 1778075960.376,
       "last_action": "run"
     },
     "tests/userprog/read-zero": {
-      "count": 1,
-      "last_used": 1778063417.902,
+      "count": 2,
+      "last_used": 1778075960.376,
       "last_action": "run"
     },
     "tests/userprog/read-stdout": {
-      "count": 6,
-      "last_used": 1778068730.534,
+      "count": 7,
+      "last_used": 1778075960.376,
       "last_action": "run"
     },
     "tests/userprog/read-bad-fd": {
+      "count": 7,
+      "last_used": 1778075960.376,
+      "last_action": "run"
+    },
+    "tests/userprog/write-normal": {
+      "count": 5,
+      "last_used": 1778086247.51,
+      "last_action": "run"
+    },
+    "tests/userprog/write-bad-ptr": {
+      "count": 5,
+      "last_used": 1778086247.51,
+      "last_action": "run"
+    },
+    "tests/userprog/write-boundary": {
+      "count": 5,
+      "last_used": 1778086247.51,
+      "last_action": "run"
+    },
+    "tests/userprog/write-zero": {
       "count": 6,
-      "last_used": 1778069211.316,
+      "last_used": 1778086247.51,
+      "last_action": "run"
+    },
+    "tests/userprog/write-stdin": {
+      "count": 5,
+      "last_used": 1778086247.51,
+      "last_action": "run"
+    },
+    "tests/userprog/write-bad-fd": {
+      "count": 5,
+      "last_used": 1778086247.51,
+      "last_action": "run"
+    },
+    "tests/userprog/wait-simple": {
+      "count": 1,
+      "last_used": 1778075960.376,
+      "last_action": "run"
+    },
+    "tests/userprog/wait-twice": {
+      "count": 1,
+      "last_used": 1778075960.376,
+      "last_action": "run"
+    },
+    "tests/userprog/wait-killed": {
+      "count": 1,
+      "last_used": 1778075960.376,
+      "last_action": "run"
+    },
+    "tests/userprog/wait-bad-pid": {
+      "count": 1,
+      "last_used": 1778075960.376,
       "last_action": "run"
     }
   }
